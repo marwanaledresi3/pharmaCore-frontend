@@ -1,0 +1,6 @@
+{
+  "name": "PharmaCore ERP & B2B Marketplace",
+  "description": "Comprehensive pharmaceutical ERP and B2B marketplace system for managing inventory, sales, purchases, accounting, and company connections.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
