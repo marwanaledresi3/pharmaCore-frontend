@@ -17,7 +17,7 @@ export class ApiError extends Error {
 const getApiBaseUrl = (): string => {
   let envUrl = import.meta.env.VITE_API_URL;
   if (!envUrl || envUrl.trim() === '' || envUrl.includes('MY_APP_URL')) {
-    envUrl = 'http://localhost:5000';
+    envUrl = 'https://pharnmacore-backend.onrender.com';
   }
   // Trim trailing slash
   envUrl = envUrl.replace(/\/+$/, '');
