@@ -30,16 +30,43 @@ async function fetchPdfBlob(path: string, params?: Record<string, any>): Promise
   return res.blob();
 }
 
-export async function openPdf(path: string, params?: Record<string, any>): Promise<void> {
-  const blob = await fetchPdfBlob(path, params);
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, '_blank');
+
+export async function openPdf(
+  path: string,
+  params?: Record<string, any>
+): Promise<void> {
+  // فتح نافذة مباشرة عند ضغط المستخدم
+  const win = window.open('about:blank', '_blank');
+
   if (!win) {
-    URL.revokeObjectURL(url);
     throw new Error('يرجى السماح بالنوافذ المنبثقة لعرض PDF');
   }
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+
+  try {
+    win.document.title = 'جاري تحميل ملف PDF...';
+    win.document.body.innerHTML = `
+      <div style="font-family:Arial;text-align:center;padding:40px">
+        جاري تحميل ملف PDF...
+      </div>
+    `;
+
+    const blob = await fetchPdfBlob(path, params);
+
+    const url = URL.createObjectURL(blob);
+
+    win.location.replace(url);
+
+    // تحرير الذاكرة بعد انتهاء الاستخدام
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 60000);
+
+  } catch (error) {
+    win.close();
+    throw error;
+  }
 }
+
 
 export async function downloadPdf(path: string, baseName: string, params?: Record<string, any>): Promise<void> {
   const blob = await fetchPdfBlob(path, params);

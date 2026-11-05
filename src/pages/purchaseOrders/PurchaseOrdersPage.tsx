@@ -22,6 +22,7 @@ import { OrdersTable } from './components/OrdersTable';
 import { DetailsModal } from './components/DetailsModal';
 import { QrModal } from './components/QrModal';
 import { CreateOrderModal } from './CreateOrderModal';
+import { productsApi } from '../../api/productsApi';
 
 export const PurchaseOrdersPage: React.FC = () => {
   const { company } = useAuth();
@@ -299,7 +300,7 @@ export const PurchaseOrdersPage: React.FC = () => {
             const unitPrice = Number(it.unit_price);
             const costPrice = Number(catalogItem.cost_price ?? catalogItem.wholesale_price ?? unitPrice);
 
-            const created = await (await import('../../api/productsApi')).productsApi.create({
+            const created = await productsApi.create({
               sku,
               name: catalogItem.name,
               unit: catalogItem.unit || 'قطعة',

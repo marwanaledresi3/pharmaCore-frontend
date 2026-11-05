@@ -1,17 +1,17 @@
 import { openPdf, downloadPdf } from './pdfHelpers';
 
 const PATHS = {
-  invoice: (id: string) => `/pdf/invoices/${id}`,
-  payment: (id: string) => `/pdf/payments/${id}`,
-  expense: (id: string) => `/pdf/expenses/${id}`,              // ← تأكد من الـ backend
-  purchaseOrder: (id: string) => `/pdf/purchase-orders/${id}`,
-  salesOrder: (id: string) => `/pdf/sales-orders/${id}`,
-  return: (id: string) => `/pdf/returns/${id}`,
-  deliveryNote: (id: string) => `/pdf/delivery-notes/${id}`,
+  invoice: (id: string) => `/api/v1/pdf/invoices/${id}`,
+  payment: (id: string) => `/api/v1/pdf/payments/${id}`,
+  expense: (id: string) => `/api/v1/pdf/expenses/${id}`,              // ← تأكد من الـ backend
+  purchaseOrder: (id: string) => `/api/v1/pdf/purchase-orders/${id}`,
+  salesOrder: (id: string) => `/api/v1/pdf/sales-orders/${id}`,
+  return: (id: string) => `/api/v1/pdf/returns/${id}`,
+  deliveryNote: (id: string) => `/api/v1/pdf/delivery-notes/${id}`,
   statement: (type: 'customer' | 'supplier', id: string) =>
-    `/pdf/statements/${type}/${id}`,
-  trialBalance: () => `/pdf/reports/trial-balance`,
-  salesReport: () => `/pdf/reports/sales`,                    // ← بلا شرطة نهاية
+    `/api/v1/pdf/statements/${type}/${id}`,
+  trialBalance: () => `/api/v1/pdf/reports/trial-balance`,
+  salesReport: () => `/api/v1/pdf/reports/sales`,                    // ← بلا شرطة نهاية
 };
 
 export const pdfApi = {
