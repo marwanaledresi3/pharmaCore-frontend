@@ -12,6 +12,12 @@ const PATHS = {
     `/api/v1/pdf/statements/${type}/${id}`,
   trialBalance: () => `/api/v1/pdf/reports/trial-balance`,
   salesReport: () => `/api/v1/pdf/reports/sales`,                    // ← بلا شرطة نهاية
+
+  // ═══ 🆕 جديد ═══
+  note: (id: string) => `/api/v1/pdf/notes/${id}`,
+  goodsReceipt: (id: string) => `/api/v1/pdf/goods-receipts/${id}`,
+  stockTransfer: (id: string) => `/api/v1/pdf/stock-transfers/${id}`,
+  stockAdjustment: (id: string) => `/api/v1/pdf/stock-adjustments/${id}`,
 };
 
 export const pdfApi = {
@@ -23,6 +29,11 @@ export const pdfApi = {
   previewSalesOrder:      (id: string) => openPdf(PATHS.salesOrder(id)),
   previewReturn:          (id: string) => openPdf(PATHS.return(id)),
   previewDeliveryNote:    (id: string) => openPdf(PATHS.deliveryNote(id)),
+   // 🆕 جديد
+  previewNote:           (id: string) => openPdf(PATHS.note(id)),
+  previewGoodsReceipt:   (id: string) => openPdf(PATHS.goodsReceipt(id)),
+  previewStockTransfer:  (id: string) => openPdf(PATHS.stockTransfer(id)),
+  previewStockAdjustment:(id: string) => openPdf(PATHS.stockAdjustment(id)),
 
   previewStatement: (
     type: 'customer' | 'supplier',
@@ -75,4 +86,21 @@ export const pdfApi = {
 
   downloadTrialBalancePdf: (params?: { date_from?: string; date_to?: string }) =>
     downloadPdf(PATHS.trialBalance(), 'trial-balance', params),
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🆕 جديد — تحميل
+  // ═══════════════════════════════════════════════════════════════
+
+  downloadNotePdf: (id: string, noteNumber?: string) =>
+    downloadPdf(PATHS.note(id), `note-${noteNumber || id.slice(0, 8)}`),
+
+  downloadGoodsReceiptPdf: (id: string, receiptNumber?: string) =>
+    downloadPdf(PATHS.goodsReceipt(id), `goods-receipt-${receiptNumber || id.slice(0, 8)}`),
+
+  downloadStockTransferPdf: (id: string, transferNumber?: string) =>
+    downloadPdf(PATHS.stockTransfer(id), `stock-transfer-${transferNumber || id.slice(0, 8)}`),
+
+  downloadStockAdjustmentPdf: (id: string, adjustmentNumber?: string) =>
+    downloadPdf(PATHS.stockAdjustment(id), `stock-adjustment-${adjustmentNumber || id.slice(0, 8)}`),
+
 };

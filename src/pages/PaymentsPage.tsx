@@ -27,6 +27,9 @@ import { pdfApi } from '../api/pdfApi1';
 
 type TargetMode = 'invoice' | 'party';
 
+// حد أقصى موحّد — يطابق max في الراوتر
+const MAX_LIST_LIMIT = 100;
+
 export const PaymentsPage: React.FC = () => {
   const { company } = useAuth();
   const baseCurrency = company?.currency_code || 'YER';
@@ -62,6 +65,7 @@ export const PaymentsPage: React.FC = () => {
 
   /* ============================================================
    * Load data
+   * ✅ FIX #8: limit = 100 (حد أقصى في الراوتر)
    * ============================================================ */
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -75,9 +79,9 @@ export const PaymentsPage: React.FC = () => {
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
         }),
-        invoicesApi.list({ limit: 200 }),
-        suppliersApi.list({ is_active: true, limit: 200 }),
-        customersApi.list({ is_active: true, limit: 200 }),
+        invoicesApi.list({ limit: MAX_LIST_LIMIT }),
+        suppliersApi.list({ is_active: true, limit: MAX_LIST_LIMIT }),
+        customersApi.list({ is_active: true, limit: MAX_LIST_LIMIT }),
       ]);
 
       setPayments(pmtsRes.items);
@@ -150,6 +154,7 @@ export const PaymentsPage: React.FC = () => {
 
   /* ============================================================
    * Submit
+   * ✅ FIX #4: التحقق من paymentDate ≤ اليوم
    * ============================================================ */
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +168,13 @@ export const PaymentsPage: React.FC = () => {
     const amt = Number(amount);
     if (isNaN(amt) || amt <= 0) {
       setFormError('يرجى إدخال مبلغ صحيح أكبر من الصفر');
+      return;
+    }
+
+    // ✅ FIX #4: التحقق من تاريخ السند
+    const today = new Date().toISOString().slice(0, 10);
+    if (paymentDate > today) {
+      setFormError('تاريخ السند لا يمكن أن يكون في المستقبل');
       return;
     }
 
@@ -645,6 +657,7 @@ export const PaymentsPage: React.FC = () => {
               <input
                 type="date"
                 required
+                max={new Date().toISOString().slice(0, 10)}
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
                 className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-mono focus:border-emerald-500 focus:outline-none"
@@ -657,7 +670,7 @@ export const PaymentsPage: React.FC = () => {
             <label className="block text-xs font-bold text-slate-700 mb-1">طريقة السداد *</label>
             <select
               value={method}
-              onChange={(e) => setMethod(e.target.value as any)}
+              onChange={(e) => setMethod(e.target.value as 'cash' | 'bank' | 'cheque')}
               className="w-full rounded-xl border border-slate-300 p-2.5 text-xs focus:border-emerald-500 focus:outline-none"
             >
               <option value="cash">نقداً (خزينة الصندوق)</option>
@@ -695,19 +708,8 @@ export const PaymentsPage: React.FC = () => {
           documentType={selectedPayment.payment_type === 'receive' ? 'سند قبض' : 'سند صرف'}
           documentNumber={(selectedPayment as any).voucher_number || selectedPayment.id.slice(0, 8)}
           documentDate={selectedPayment.payment_date ? String(selectedPayment.payment_date).slice(0, 10) : ''}
-          partyTitle="البيان"
-          partyName={(selectedPayment as any).description || '—'}
-          partyInfo={`طريقة الدفع: ${
-            selectedPayment.method === 'cash'
-              ? 'نقداً'
-              : selectedPayment.method === 'bank'
-                ? 'حوالة بنكية'
-                : 'شيك'
-          }${
-            (selectedPayment as any).external_reference
-              ? ` | رقم السند الورقي: ${(selectedPayment as any).external_reference}`
-              : ''
-          }`}
+          partyTitle={selectedPayment.payment_type === 'receive' ? 'المستلم منه' : 'المدفوع له'}
+          partyName={(selectedPayment as any).party_name || (selectedPayment as any).description || '—'}
           currencyCode={selectedPayment.currency_code || baseCurrency}
           company={company}
           summary={[
@@ -717,7 +719,25 @@ export const PaymentsPage: React.FC = () => {
               isTotal: true,
             },
           ]}
-          notes="تم استلام / صرف المبلغ الموضح أعلاه وفقاً للقيود المالية المعتمدة في النظام."
+          notes={
+            [
+              (selectedPayment as any).description
+                ? `البيان: ${(selectedPayment as any).description}`
+                : null,
+              `طريقة الدفع: ${
+                selectedPayment.method === 'cash'
+                  ? 'نقداً'
+                  : selectedPayment.method === 'bank'
+                    ? 'حوالة بنكية'
+                    : 'شيك'
+              }`,
+              (selectedPayment as any).external_reference
+                ? `رقم السند الورقي: ${(selectedPayment as any).external_reference}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' | ')
+          }
         />
       )}
     </div>

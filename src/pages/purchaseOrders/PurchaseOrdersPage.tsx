@@ -1,255 +1,372 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
+// pages/purchaseOrders/PurchaseOrdersPage.tsx
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  ShoppingBag,
+  Plus,
+  RefreshCw,
+  FileText,
+  Eye,
+  CheckCircle2,
+  XCircle,
+  Trash2,
+  Printer,
+} from 'lucide-react';
 import { ordersApi, PaymentMethod, PaymentType } from '../../api/ordersApi';
-import { b2bApi } from '../../api/b2bApi';
+import { suppliersApi } from '../../api/suppliersApi';
+import { productsApi } from '../../api/productsApi';
+import { companyApi } from '../../api/companyApi';
 import { invoicesApi } from '../../api/invoicesApi';
-import { PurchaseOrder, ValidationErrorDetail } from '../../types';
+import { b2bApi } from '../../api/b2bApi';
+import {
+  PurchaseOrder,
+  Supplier,
+  Product,
+  Currency,
+  Pagination as PaginationType,
+  ValidationErrorDetail,
+} from '../../types';
 import { Modal } from '../../components/common/Modal';
+import { StatusBadge } from '../../components/common/Badge';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ErrorAlert } from '../../components/common/ErrorAlert';
+import { EmptyState } from '../../components/common/EmptyState';
+import { Pagination } from '../../components/common/Pagination';
 import { PrintPreviewModal, exportToCsv } from '../../components/common/PrintPreviewModal';
 import { useAuth } from '../../context/AuthContext';
-
-import { CatalogProduct, DraftItem, QRData } from './types';
-import { STATUS_FILTERS, StatusFilterValue, PAYMENT_TYPE_LABELS } from './constants';
-import { toDateInput } from './utils';
-
-import { useReferences } from './hooks/useReferences';
-import { useOrdersList } from './hooks/useOrdersList';
-import { useSupplierCatalog } from './hooks/useSupplierCatalog';
-import { useDraftItems } from './hooks/useDraftItems';
-
-import { OrdersTable } from './components/OrdersTable';
-import { DetailsModal } from './components/DetailsModal';
-import { QrModal } from './components/QrModal';
+import { pdfApi } from '../../api/pdfApi1';
 import { CreateOrderModal } from './CreateOrderModal';
-import { productsApi } from '../../api/productsApi';
+import { CatalogProduct, DraftItem } from './types';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════════════════
+
+const uid = () =>
+  `d_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+function resolveUnitFactor(
+  product: { units?: Array<{ unit_id: string; conversion_factor: number }> } | undefined,
+  unitId: string | null
+): number {
+  if (!unitId) return 1;
+  const unit = product?.units?.find((u) => u.unit_id === unitId);
+  return Number(unit?.conversion_factor) || 1;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Page
+// ═══════════════════════════════════════════════════════════════════════════
 
 export const PurchaseOrdersPage: React.FC = () => {
   const { company } = useAuth();
   const baseCurrency = company?.currency_code || 'YER';
 
-  /* ---------- Filters & list ---------- */
-  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all');
-  const {
-    orders,
-    pagination,
-    isLoading,
-    error: listError,
-    reload: loadOrders,
-  } = useOrdersList(statusFilter);
+  // ─── Data ───
+  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [pagination, setPagination] = useState<PaginationType>({
+    page: 1,
+    limit: 15,
+    total: 0,
+  });
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  /* ---------- References ---------- */
-  const {
-    suppliers,
-    products,
-    currencies,
-    status: refsStatus,
-    error: refsError,
-    reload: loadReferences,
-    setProducts,
-  } = useReferences();
+  // ─── References ───
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [catalog, setCatalog] = useState<CatalogProduct[]>([]);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
-  /* ---------- Create modal ---------- */
+  // ─── Create Modal ───
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState('');
   const [selectedCurrencyId, setSelectedCurrencyId] = useState('');
-  const [orderDate, setOrderDate] = useState(toDateInput(new Date()));
+  const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
+  const [items, setItems] = useState<DraftItem[]>([]);
 
+  // ✅ Payment & Discount
   const [paymentType, setPaymentType] = useState<PaymentType>('credit');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [paymentTermsDays, setPaymentTermsDays] = useState(30);
-  const [paidAmount, setPaidAmount] = useState(0);
+  const [paymentTermsDays, setPaymentTermsDays] = useState<number>(30);
+  const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [invoiceDiscountRate, setInvoiceDiscountRate] = useState<number>(0);
+  const [defaultMarginRate, setDefaultMarginRate] = useState<number>(20);
 
+  // ✅ Supplier invoice
   const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState('');
   const [supplierInvoiceDate, setSupplierInvoiceDate] = useState('');
-
-  const [activeCatalogProducts, setActiveCatalogProducts] = useState<CatalogProduct[]>([]);
-  const { items, setItems, addItemRow, removeItemRow, updateItemRow, handleProductChange } =
-    useDraftItems();
 
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [validationDetails, setValidationDetails] = useState<ValidationErrorDetail[] | undefined>();
 
-  const { isLoading: isCatalogLoading, error: catalogError } = useSupplierCatalog({
-    isOpen: isCreateOpen,
-    selectedSupplierId,
-    suppliers,
-    products,
-    onCatalogLoaded: setActiveCatalogProducts,
-    onItemsReset: setItems,
+  // ─── Details Modal ───
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // ─── Print Modal ───
+  const [isPrintOpen, setIsPrintOpen] = useState(false);
+
+  // ─── Invoice Modal ───
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceDueDate, setInvoiceDueDate] = useState('');
+
+
+    const currentSupplier = useMemo(
+      () => suppliers.find((s) => s.id === selectedSupplierId),
+      [suppliers, selectedSupplierId]
+    );
+    const currentSupplierNetCheck = useMemo(
+      () => b2bApi.isNetworkSupplier(currentSupplier),
+      [currentSupplier]
+    );
+    const isNetworkSupplier = currentSupplierNetCheck.isNetwork;
+  
+  // ══════════════════════════════════════════════════════════════════════
+  // Load Data
+  // ══════════════════════════════════════════════════════════════════════
+
+  const loadData = useCallback(
+    async (page = 1) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const statusParam =
+          statusFilter === 'all'
+            ? undefined
+            : (statusFilter as PurchaseOrder['status']);
+
+        const [ordersRes, suppRes, prodRes, curRes] = await Promise.all([
+          ordersApi.listPurchaseOrders({ status: statusParam, page, limit: 15 }),
+          suppliersApi.list({ is_active: true, limit: 100 }),
+          productsApi.list({ is_active: true, limit: 100 }),
+          companyApi.listCurrencies(),
+        ]);
+
+        // ✅ التحقق من النوع
+        setOrders(Array.isArray(ordersRes) ? ordersRes : ordersRes.items || []);
+        setPagination(
+          Array.isArray(ordersRes) ? { page: 1, limit: 15, total: ordersRes.length } : ordersRes.pagination
+        );
+        setSuppliers(Array.isArray(suppRes) ? suppRes : suppRes.items || []);
+        setProducts(Array.isArray(prodRes) ? prodRes : prodRes.items || []);
+        setCurrencies(curRes || []);
+      } catch (err: any) {
+        setError(err.message || 'فشل تحميل أوامر الشراء');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [statusFilter]
+  );
+
+  useEffect(() => {
+    loadData(1);
+  }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Load Catalog (للمورد الشبكي)
+  // ══════════════════════════════════════════════════════════════════════
+
+  useEffect(() => {
+    if (!selectedSupplierId) {
+      setCatalog([]);
+      return;
+    }
+
+    const supplier = suppliers.find((s) => s.id === selectedSupplierId);
+    const check = b2bApi.isNetworkSupplier(supplier);
+
+    if (!check.isNetwork) {
+      // مورد محلي → استخدم المنتجات العادية
+      setCatalog(
+        products.map((p) => ({
+          id: p.id,
+          name: p.name,
+          sku: p.sku,
+          unit: p.unit,
+          cost_price: p.cost_price,
+          selling_price: p.selling_price,
+          current_stock: p.current_stock || 0,
+          units: p.units || [],
+        }))
+      );
+      setCatalogError(null);
+      return;
+    }
+
+    // مورد شبكي → جلب الكتالوج من API
+    setIsCatalogLoading(true);
+    setCatalogError(null);
+    (async () => {
+      try {
+        const res = await b2bApi.getCompanyStock(selectedSupplierId);
+        setCatalog(res || []);
+      } catch (err: any) {
+        setCatalogError(err.message || 'فشل تحميل كتالوج المورد');
+        setCatalog([]);
+      } finally {
+        setIsCatalogLoading(false);
+      }
+    })();
+  }, [selectedSupplierId, suppliers, products]);
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Item helpers
+  // ══════════════════════════════════════════════════════════════════════
+
+  const buildDefaultItem = (prod: CatalogProduct): DraftItem => ({
+    uid: uid(),
+    product_id: prod.product_id || prod.id!,
+    paid_quantity: 1,
+    bonus_quantity: 0,
+    unit_price: Number(prod.cost_price || 0),
+    tax_rate: 0,
+    unit_id: null,
+    conversion_factor: 1,
+
+    // ✅ حقول المشتريات
+    batch_number: '',
+    expiry_date: '',
   });
 
-  const currentSupplier = useMemo(
-    () => suppliers.find((s) => s.id === selectedSupplierId),
-    [suppliers, selectedSupplierId]
-  );
-  const currentSupplierNetCheck = useMemo(
-    () => b2bApi.isNetworkSupplier(currentSupplier),
-    [currentSupplier]
-  );
-  const isNetworkSupplier = currentSupplierNetCheck.isNetwork;
-
-  const canOpenCreate =
-    refsStatus === 'ready' && suppliers.length > 0 && currencies.length > 0;
-
-  const createDisabledReason = useMemo(() => {
-    if (refsStatus === 'loading' || refsStatus === 'idle') return 'جاري تحميل البيانات...';
-    if (refsStatus === 'error') return `فشل تحميل البيانات: ${refsError || 'خطأ غير معروف'}`;
-    if (suppliers.length === 0) return 'أضف مورداً أولاً';
-    if (currencies.length === 0) return 'لا توجد عملات مسجّلة';
-    return undefined;
-  }, [refsStatus, refsError, suppliers.length, currencies.length]);
-
   const openCreateModal = () => {
-    if (!canOpenCreate) return;
-    const firstSup = suppliers[0]?.id || '';
+    const firstSupp = suppliers[0]?.id || '';
     const firstCur = currencies.find((c) => c.code === baseCurrency)?.id || currencies[0]?.id || '';
 
-    setSelectedSupplierId(firstSup);
+    setSelectedSupplierId(firstSupp);
     setSelectedCurrencyId(firstCur);
-    setSupplierInvoiceNumber('');
-    setSupplierInvoiceDate('');
-    setOrderDate(toDateInput(new Date()));
+    setOrderDate(new Date().toISOString().slice(0, 10));
+    setItems([]);
+
+    // ✅ Reset
     setPaymentType('credit');
     setPaymentMethod('cash');
     setPaymentTermsDays(30);
     setPaidAmount(0);
-    setItems([]);
-    setActiveCatalogProducts([]);
+    setInvoiceDiscountRate(0);
+    setSupplierInvoiceNumber('');
+    setSupplierInvoiceDate('');
+
     setFormError(null);
     setValidationDetails(undefined);
     setIsCreateOpen(true);
   };
 
-  const closeCreateModal = () => {
-    setIsCreateOpen(false);
-    setSupplierInvoiceNumber('');
-    setSupplierInvoiceDate('');
-    setActiveCatalogProducts([]);
-    setItems([]);
-    setFormError(null);
-    setValidationDetails(undefined);
-  };
-
-  /* ---------- Details ---------- */
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  const detailsReqId = useRef(0);
-
-  const openDetailsModal = async (order: PurchaseOrder) => {
-    const reqId = ++detailsReqId.current;
-    setSelectedOrder(order);
-    setIsDetailsOpen(true);
-    setDetailsLoading(true);
-    try {
-      const detailed = await ordersApi.getPurchaseOrder(order.id);
-      if (reqId === detailsReqId.current) setSelectedOrder(detailed);
-    } catch {
-      /* silent */
-    } finally {
-      if (reqId === detailsReqId.current) setDetailsLoading(false);
+  const addItemRow = () => {
+    const firstProd = catalog[0];
+    if (!firstProd) {
+      setFormError('لا توجد منتجات في الكتالوج');
+      return;
     }
+    setItems((prev) => [...prev, buildDefaultItem(firstProd)]);
   };
 
-  const closeDetailsModal = () => {
-    detailsReqId.current++;
-    setIsDetailsOpen(false);
-    setSelectedOrder(null);
+  const removeItemRow = (uidToRemove: string) => {
+    if (items.length <= 1) return;
+    setItems((prev) => prev.filter((it) => it.uid !== uidToRemove));
   };
 
-  const handleConfirmOrder = async () => {
-    if (!selectedOrder) return;
-    if (!window.confirm('هل أنت متأكد من تأكيد أمر الشراء؟ سيؤدي ذلك إلى استلام المخزون فعلياً وتوليد قيد الاستحقاق المحاسبي.')) return;
-    setActionLoading(true);
-    try {
-      await ordersApi.confirmPurchaseOrder(selectedOrder.id);
-      closeDetailsModal();
-      await loadOrders(pagination.page);
-    } catch (err: any) {
-      window.alert(err?.message || 'فشل تأكيد أمر الشراء');
-    } finally {
-      setActionLoading(false);
+  const updateItemRow = (uidToUpdate: string, patch: Partial<DraftItem>) => {
+    setItems((prev) =>
+      prev.map((it) => (it.uid !== uidToUpdate ? it : { ...it, ...patch }))
+    );
+  };
+
+  const handleProductChange = (uidToUpdate: string, newProductId: string) => {
+    const prod = catalog.find(
+      (p) => (p.product_id || p.id) === newProductId
+    );
+    if (!prod) {
+      updateItemRow(uidToUpdate, { product_id: newProductId });
+      return;
     }
+    updateItemRow(uidToUpdate, {
+      product_id: newProductId,
+      unit_id: null,
+      conversion_factor: 1,
+      unit_price: Number(prod.cost_price || 0),
+    });
   };
 
-  const handleCancelOrder = async () => {
-    if (!selectedOrder) return;
-    if (!window.confirm('هل أنت متأكد من رغبتك في إلغاء أمر الشراء هذا؟')) return;
-    setActionLoading(true);
-    try {
-      await ordersApi.cancelPurchaseOrder(selectedOrder.id);
-      closeDetailsModal();
-      await loadOrders(pagination.page);
-    } catch (err: any) {
-      window.alert(err?.message || 'فشل إلغاء أمر الشراء');
-    } finally {
-      setActionLoading(false);
+  const handleUnitChange = (uidToUpdate: string, newUnitId: string | null) => {
+    const item = items.find((it) => it.uid === uidToUpdate);
+    if (!item) return;
+
+    const product = catalog.find(
+      (p) => (p.product_id || p.id) === item.product_id
+    );
+    if (!product) return;
+
+    const factor = resolveUnitFactor(product, newUnitId);
+    const basePrice = Number(product.cost_price || 0);
+    let unitPrice = basePrice;
+
+    if (newUnitId && product.units) {
+      const unit = product.units.find((u) => u.unit_id === newUnitId);
+      if (unit) {
+        if (unit.purchase_price != null && Number(unit.purchase_price) > 0) {
+          unitPrice = Number(unit.purchase_price);
+        } else {
+          unitPrice = basePrice * factor;
+        }
+      }
     }
+
+    updateItemRow(uidToUpdate, {
+      unit_id: newUnitId,
+      conversion_factor: factor,
+      unit_price: unitPrice,
+    });
   };
 
-  /* ---------- Invoice ---------- */
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-  const [invoiceDueDate, setInvoiceDueDate] = useState('');
+  // ══════════════════════════════════════════════════════════════════════
+  // Totals
+  // ══════════════════════════════════════════════════════════════════════
 
-  const handleCreateInvoice = async () => {
-    if (!selectedOrder) return;
-    setActionLoading(true);
-    try {
-      await invoicesApi.createFromPurchaseOrder(selectedOrder.id, invoiceDueDate || undefined);
-      setIsInvoiceModalOpen(false);
-      closeDetailsModal();
-      window.alert('تم إنشاء فاتورة المشتريات بنجاح!');
-      await loadOrders(pagination.page);
-    } catch (err: any) {
-      window.alert(err?.message || 'فشل تحويل أمر الشراء إلى فاتورة');
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  const subtotal = useMemo(() => {
+    return items.reduce((acc, it) => {
+      return acc + (Number(it.paid_quantity) || 0) * (Number(it.unit_price) || 0);
+    }, 0);
+  }, [items]);
 
-  /* ---------- Print ---------- */
-  const [isPrintOpen, setIsPrintOpen] = useState(false);
+  const discountTotal = useMemo(() => {
+    return subtotal * (invoiceDiscountRate / 100);
+  }, [subtotal, invoiceDiscountRate]);
 
-  /* ---------- QR ---------- */
-  const [qrModalData, setQrModalData] = useState<QRData | null>(null);
-  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const netAfterDiscount = useMemo(() => {
+    return subtotal - discountTotal;
+  }, [subtotal, discountTotal]);
 
-  /* ---------- Create submit ---------- */
+  const taxTotal = useMemo(() => {
+    return items.reduce((acc, it) => {
+      const gross = (Number(it.paid_quantity) || 0) * (Number(it.unit_price) || 0);
+      return acc + gross * ((Number(it.tax_rate) || 0) / 100);
+    }, 0);
+  }, [items]);
+
+  const grandTotal = useMemo(() => {
+    return netAfterDiscount + taxTotal;
+  }, [netAfterDiscount, taxTotal]);
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Create submit
+  // ══════════════════════════════════════════════════════════════════════
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedSupplierId) return setFormError('يرجى اختيار المورد');
     if (!selectedCurrencyId) return setFormError('يرجى اختيار العملة');
-    if (items.length === 0) return setFormError('يجب إضافة صنف واحد على الأقل');
-    if (isCatalogLoading) return setFormError('انتظر انتهاء تحميل كتالوج المورد');
+    if (items.length === 0) return setFormError('يجب إضافة بند واحد على الأقل');
 
-    if (paymentType === 'partial') {
-      const grand = items.reduce((s, it) => {
-        const gross = it.paid_quantity * it.unit_price;
-        let disc = 0;
-        if (isNetworkSupplier) {
-          disc = 0;
-        } else if (it.discount_rate > 0) {
-          disc = gross * (it.discount_rate / 100);
-        } else if (it.discount_amount > 0) {
-          disc = Math.min(it.discount_amount, gross);
-        }
-        const net = Math.max(0, gross - disc);
-        const tax = isNetworkSupplier ? 0 : net * (it.tax_rate / 100);
-        return s + net + tax;
-      }, 0);
-      if (!Number.isFinite(paidAmount) || paidAmount <= 0) {
-        return setFormError('المبلغ المدفوع مطلوب للدفع الجزئي');
-      }
-      if (paidAmount >= grand) {
-        return setFormError('المبلغ المدفوع يجب أن يكون أقل من الإجمالي');
-      }
-    }
-    if ((paymentType === 'cash' || paymentType === 'partial') && !paymentMethod) {
-      return setFormError('طريقة الدفع مطلوبة');
+    // ✅ التحقق من payment_type
+    if (paymentType === 'partial' && (paidAmount <= 0 || paidAmount >= grandTotal)) {
+      return setFormError('المبلغ المدفوع يجب أن يكون بين 0 والإجمالي');
     }
 
     setFormLoading(true);
@@ -257,200 +374,165 @@ export const PurchaseOrdersPage: React.FC = () => {
     setValidationDetails(undefined);
 
     try {
-      const supplier = suppliers.find((s) => s.id === selectedSupplierId);
-      if (!supplier) throw new Error('المورد المحدد غير موجود');
-
-      const network = b2bApi.isNetworkSupplier(supplier);
-      const localBySku = new Map<string, any>();
-      const localByName = new Map<string, any>();
-      const rememberLocal = (p: any) => {
-        if (p.sku) localBySku.set(String(p.sku).toLowerCase(), p);
-        if (p.name) localByName.set(String(p.name).toLowerCase(), p);
-      };
-      products.forEach(rememberLocal);
-
-      const createdProducts: any[] = [];
-      const resolvedItems: Array<Record<string, unknown>> = [];
-
-      for (const it of items) {
-        const catalogItem = activeCatalogProducts.find((p) => p.id === it.product_id);
-        if (!catalogItem) throw new Error('أحد الأصناف لم يعد موجوداً في كتالوج المورد');
-
-        let localProduct =
-          products.find((p) => p.id === it.product_id) ??
-          createdProducts.find((p) => p.id === it.product_id);
-
-        let supplierProductId: string | undefined;
-
-        if (!localProduct) {
-          if (!network.isNetwork || !network.companyId) {
-            throw new Error(`المنتج "${catalogItem.name}" غير محلي ولا يمكن التحقق من مصدره الشبكي`);
-          }
-
-          supplierProductId = catalogItem.id;
-          const sku = String(catalogItem.sku || '').trim();
-
-          if (sku) localProduct = localBySku.get(sku.toLowerCase());
-          if (!localProduct && catalogItem.name) {
-            localProduct = localByName.get(String(catalogItem.name).toLowerCase());
-          }
-
-          if (!localProduct) {
-            if (!sku) throw new Error(`لا يمكن تسجيل "${catalogItem.name}" محلياً دون SKU`);
-            const unitPrice = Number(it.unit_price);
-            const costPrice = Number(catalogItem.cost_price ?? catalogItem.wholesale_price ?? unitPrice);
-
-            const created = await productsApi.create({
-              sku,
-              name: catalogItem.name,
-              unit: catalogItem.unit || 'قطعة',
-              cost_price: Number.isFinite(costPrice) ? costPrice : unitPrice,
-              selling_price: Number(catalogItem.selling_price || 0),
-              category: catalogItem.category || undefined,
-              barcode: catalogItem.barcode || undefined,
-            });
-
-            localProduct = created;
-            createdProducts.push(created);
-            rememberLocal(created);
-          }
-        }
-
-        if (!localProduct) throw new Error(`تعذر تحديد المنتج المحلي للصنف: ${it.product_id}`);
-
-        const paidQuantity = Number(it.paid_quantity);
-        const bonusQuantity = isNetworkSupplier ? 0 : Number(it.bonus_quantity || 0);
-        const unitPrice = Number(it.unit_price);
-        const discountRate = isNetworkSupplier ? 0 : Number(it.discount_rate || 0);
-        const discountAmount = isNetworkSupplier ? 0 : Number(it.discount_amount || 0);
-        const taxRate = isNetworkSupplier ? 0 : Number(it.tax_rate || 0);
-
-        if (!Number.isFinite(paidQuantity) || paidQuantity <= 0)
-          throw new Error('يجب أن تكون الكمية المدفوعة أكبر من صفر');
-        if (!isNetworkSupplier && (!Number.isFinite(bonusQuantity) || bonusQuantity < 0))
-          throw new Error('الكمية المجانية لا يمكن أن تكون سالبة');
-        if (!isNetworkSupplier && (!Number.isFinite(unitPrice) || unitPrice < 0))
-          throw new Error('سعر الوحدة غير صالح');
-        if (!isNetworkSupplier && (!Number.isFinite(discountRate) || discountRate < 0 || discountRate > 100))
-          throw new Error('نسبة الخصم يجب أن تكون بين 0 و100');
-        if (!isNetworkSupplier && (!Number.isFinite(discountAmount) || discountAmount < 0))
-          throw new Error('مبلغ الخصم لا يمكن أن يكون سالباً');
-        if (!isNetworkSupplier && (!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 100))
-          throw new Error('نسبة الضريبة يجب أن تكون بين 0 و100');
-
-        const itemPayload: Record<string, unknown> = {
-          product_id: localProduct.id,
-          paid_quantity: paidQuantity,
-          bonus_quantity: bonusQuantity,
-          quantity: paidQuantity + bonusQuantity,
-        };
-
-        if (supplierProductId) itemPayload.supplier_product_id = supplierProductId;
-        if (!isNetworkSupplier) {
-          itemPayload.unit_price = unitPrice;
-          itemPayload.discount_rate = discountRate;
-          itemPayload.discount_amount = discountAmount;
-          itemPayload.tax_rate = taxRate;
-        }
-        if (it.batch_number?.trim()) itemPayload.batch_number = it.batch_number.trim();
-        if (it.expiry_date?.trim()) itemPayload.expiry_date = it.expiry_date.slice(0, 10);
-
-        resolvedItems.push(itemPayload);
-      }
-
       await ordersApi.createPurchaseOrder({
         supplier_id: selectedSupplierId,
         currency_id: selectedCurrencyId,
         order_date: orderDate,
+
+        // ✅ Payment & Discount
         payment_type: paymentType,
-        payment_method: paymentType !== 'credit' ? paymentMethod : undefined,
-        payment_terms_days: paymentType !== 'cash' ? paymentTermsDays : undefined,
-        paid_amount: paymentType === 'partial' ? paidAmount : undefined,
-        supplier_invoice_number: supplierInvoiceNumber || undefined,
+        payment_method: paymentMethod,
+        payment_terms_days: paymentTermsDays,
+        paid_amount: paymentType === 'cash' ? grandTotal : paidAmount,
+        discount_rate: invoiceDiscountRate,
+
+        // ✅ Supplier invoice
+        supplier_invoice_number: supplierInvoiceNumber.trim() || undefined,
         supplier_invoice_date: supplierInvoiceDate || undefined,
-        items: resolvedItems as any,
+
+        items: items.map((it) => ({
+          product_id: it.product_id,
+          paid_quantity: Number(it.paid_quantity) || 1,
+          bonus_quantity: Number(it.bonus_quantity) || 0,
+          quantity: (Number(it.paid_quantity) || 1) + (Number(it.bonus_quantity) || 0),
+          unit_price: Number(it.unit_price) || 0,
+          tax_rate: Number(it.tax_rate) || 0,
+          batch_number: it.batch_number?.trim() || undefined,
+          expiry_date: it.expiry_date || undefined,
+          ...(it.unit_id
+            ? { unit_id: it.unit_id, conversion_factor: Number(it.conversion_factor) || 1 }
+            : {}),
+        })),
       });
 
-      if (createdProducts.length > 0) {
-        setProducts((prev) => {
-          const ids = new Set(prev.map((p) => p.id));
-          return [...createdProducts.filter((p) => !ids.has(p.id)), ...prev];
-        });
-      }
-
-      closeCreateModal();
-      await loadOrders(1);
+      setIsCreateOpen(false);
+      loadData(1);
     } catch (err: any) {
-      console.error('فشل إنشاء أمر الشراء:', err);
-      setFormError(err?.message || 'فشل إنشاء أمر الشراء');
-      if (Array.isArray(err?.details)) setValidationDetails(err.details);
+      setFormError(err.message || 'فشل إنشاء أمر الشراء');
+      if (err.details && Array.isArray(err.details)) {
+        setValidationDetails(err.details);
+      }
     } finally {
       setFormLoading(false);
     }
   };
 
-  /* ---------- Export CSV ---------- */
+  // ══════════════════════════════════════════════════════════════════════
+  // Details & Actions
+  // ══════════════════════════════════════════════════════════════════════
+
+  const openDetailsModal = async (order: PurchaseOrder) => {
+    setSelectedOrder(order);
+    setIsDetailsOpen(true);
+    setIsPrintOpen(false);
+    setIsInvoiceModalOpen(false);
+    try {
+      const detailed = await ordersApi.getPurchaseOrder(order.id);
+      setSelectedOrder(detailed);
+    } catch {
+      /* silent */
+    }
+  };
+
+  const handleConfirmOrder = async () => {
+    if (!selectedOrder) return;
+    if (!window.confirm('هل أنت متأكد من تأكيد أمر الشراء؟ سيتم إضافة الكميات للمخزون.')) return;
+    setActionLoading(true);
+    try {
+      await ordersApi.confirmPurchaseOrder(selectedOrder.id);
+      setIsDetailsOpen(false);
+      loadData(pagination.page);
+    } catch (err: any) {
+      alert(err.message || 'فشل تأكيد أمر الشراء');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selectedOrder) return;
+    if (!window.confirm('هل أنت متأكد من إلغاء أمر الشراء؟')) return;
+    setActionLoading(true);
+    try {
+      await ordersApi.cancelPurchaseOrder(selectedOrder.id);
+      setIsDetailsOpen(false);
+      loadData(pagination.page);
+    } catch (err: any) {
+      alert(err.message || 'فشل إلغاء أمر الشراء');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!selectedOrder) return;
+    setActionLoading(true);
+    try {
+      await invoicesApi.createFromPurchaseOrder(selectedOrder.id, invoiceDueDate || undefined);
+      setIsInvoiceModalOpen(false);
+      setIsDetailsOpen(false);
+      alert('تم إنشاء فاتورة الشراء بنجاح!');
+      loadData(pagination.page);
+    } catch (err: any) {
+      alert(err.message || 'فشل تحويل أمر الشراء إلى فاتورة');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // CSV
+  // ══════════════════════════════════════════════════════════════════════
+
   const handleExportCsv = () => {
     const exportData = orders.map((o) => ({
       'رقم الأمر': o.order_number,
       المورد: o.supplier_name || '',
       التاريخ: o.order_date ? String(o.order_date).slice(0, 10) : '',
-      المبلغ_الصافي: o.subtotal,
+      'المبلغ الصافي': o.subtotal,
       الضريبة: o.tax_total,
       الإجمالي: o.total,
-      'نوع الدفع': o.payment_type ? PAYMENT_TYPE_LABELS[o.payment_type as PaymentType] : '',
       الحالة: o.status,
     }));
     exportToCsv(exportData, 'purchase_orders');
   };
 
-  /* ---------- Render ---------- */
+  // ══════════════════════════════════════════════════════════════════════
+  // Render
+  // ══════════════════════════════════════════════════════════════════════
+
   return (
     <div dir="rtl" className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">أوامر الشراء والتوريد</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            أوامر الشراء والتوريد
+          </h1>
           <p className="text-xs text-slate-500 mt-1">
-            إدارة طلبات الشراء، اعتماد كميات البونص، تحديث المخزون، والفوترة
+            إدارة طلبات الشراء من الموردين، التكاليف، البونص، والتحويل إلى فواتير
           </p>
         </div>
+
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleExportCsv}
             disabled={orders.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-xs transition disabled:opacity-50"
           >
             تصدير CSV
           </button>
           <button
             type="button"
             onClick={openCreateModal}
-            disabled={!canOpenCreate}
-            title={createDisabledReason}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-xs transition"
           >
             <Plus className="w-4 h-4" />
-            {refsStatus === 'loading' || refsStatus === 'idle' ? 'جاري التحميل...' : 'أمر شراء جديد'}
+            أمر شراء جديد
           </button>
         </div>
       </div>
-
-      {refsStatus === 'error' && (
-        <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>تعذر تحميل المراجع: {refsError}</span>
-          </div>
-          <button
-            onClick={loadReferences}
-            className="px-3 py-1 bg-rose-600 text-white rounded-lg font-bold"
-          >
-            إعادة المحاولة
-          </button>
-        </div>
-      )}
 
       {/* Filter Bar */}
       <div className="flex items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
@@ -458,18 +540,22 @@ export const PurchaseOrdersPage: React.FC = () => {
           <span className="text-xs font-bold text-slate-600">تصفية حسب الحالة:</span>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilterValue)}
+            onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-700 focus:bg-white focus:border-emerald-500 focus:outline-none"
           >
-            {STATUS_FILTERS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
+            <option value="all">جميع الحالات</option>
+            <option value="draft">المسودات</option>
+            <option value="pending_approval">بانتظار الموافقة</option>
+            <option value="approved">تمت الموافقة</option>
+            <option value="confirmed">المؤكدة</option>
+            <option value="invoiced">المفوترة</option>
+            <option value="cancelled">الملغاة</option>
           </select>
         </div>
+
         <button
-          onClick={() => loadOrders(pagination.page)}
+          type="button"
+          onClick={() => loadData(pagination.page)}
           disabled={isLoading}
           className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition"
           title="تحديث"
@@ -478,99 +564,304 @@ export const PurchaseOrdersPage: React.FC = () => {
         </button>
       </div>
 
-      {listError && <ErrorAlert error={listError} onRetry={() => loadOrders(pagination.page)} />}
+      {error && <ErrorAlert error={error} onRetry={() => loadData(pagination.page)} />}
 
       {/* Orders Table */}
-      <OrdersTable
-        orders={orders}
-        suppliers={suppliers}
-        isLoading={isLoading}
-        pagination={pagination}
-        baseCurrency={baseCurrency}
-        canOpenCreate={canOpenCreate}
-        onCreate={openCreateModal}
-        onOpenDetails={openDetailsModal}
-        onPageChange={loadOrders}
-      />
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+        {isLoading ? (
+          <LoadingSpinner message="جاري جلب أوامر الشراء..." fullHeight />
+        ) : orders.length === 0 ? (
+          <EmptyState
+            title="لا توجد أوامر شراء"
+            description="يمكنك البدء بإنشاء طلب شراء من مورد."
+            actionLabel="إنشاء أول أمر شراء"
+            onAction={openCreateModal}
+            icon={<ShoppingBag className="w-8 h-8" />}
+          />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 font-bold">
+                    <th className="py-3 px-4">رقم الأمر</th>
+                    <th className="py-3 px-4">المورد</th>
+                    <th className="py-3 px-4">تاريخ الطلب</th>
+                    <th className="py-3 px-4 text-center">الإجمالي</th>
+                    <th className="py-3 px-4 text-center">الحالة</th>
+                    <th className="py-3 px-4 text-left">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {orders.map((o) => (
+                    <tr key={o.id} className="hover:bg-slate-50/50 transition">
+                      <td className="py-3.5 px-4 font-bold text-slate-900 font-mono">
+                        PO#{o.order_number}
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800">
+                        {o.supplier_name || 'مورد'}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 font-mono">
+                        {o.order_date ? String(o.order_date).slice(0, 10) : '-'}
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-bold text-slate-900 font-mono">
+                        {Number(o.total || 0).toLocaleString()} {baseCurrency}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <StatusBadge status={o.status} />
+                      </td>
+                      <td className="py-3.5 px-4 text-left">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => pdfApi.previewPurchaseOrder(o.id)}
+                            title="عرض PDF"
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openDetailsModal(o)}
+                            title="عرض التفاصيل"
+                            className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
+            <Pagination pagination={pagination} onPageChange={loadData} />
+          </>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
       {/* Create Modal */}
-      <CreateOrderModal
-        isOpen={isCreateOpen}
-        suppliers={suppliers}
-        currencies={currencies}
-        catalog={activeCatalogProducts}
-        isCatalogLoading={isCatalogLoading}
-        catalogError={catalogError}
-        baseCurrency={baseCurrency}
-        selectedSupplierId={selectedSupplierId}
-        selectedCurrencyId={selectedCurrencyId}
-        orderDate={orderDate}
-        paymentType={paymentType}
-        paymentMethod={paymentMethod}
-        paymentTermsDays={paymentTermsDays}
-        paidAmount={paidAmount}
-        supplierInvoiceNumber={supplierInvoiceNumber}
-        supplierInvoiceDate={supplierInvoiceDate}
-        items={items}
-        formLoading={formLoading}
-        formError={formError}
-        validationDetails={validationDetails}
-        onChangeSupplier={setSelectedSupplierId}
-        onChangeCurrency={setSelectedCurrencyId}
-        onChangeOrderDate={setOrderDate}
-        onChangePayment={(patch) => {
-          if (patch.paymentType !== undefined) setPaymentType(patch.paymentType);
-          if (patch.paymentMethod !== undefined) setPaymentMethod(patch.paymentMethod);
-          if (patch.paymentTermsDays !== undefined) setPaymentTermsDays(patch.paymentTermsDays);
-          if (patch.paidAmount !== undefined) setPaidAmount(patch.paidAmount);
-        }}
-        onChangeSupplierInvoice={(patch) => {
-          if (patch.invoiceNumber !== undefined) setSupplierInvoiceNumber(patch.invoiceNumber);
-          if (patch.invoiceDate !== undefined) setSupplierInvoiceDate(patch.invoiceDate);
-        }}
-        onAddRow={() => addItemRow(activeCatalogProducts, setFormError)}
-        onRemoveRow={removeItemRow}
-        onChangeItem={updateItemRow}
-        onChangeProduct={(uid, prodId) => handleProductChange(uid, prodId, activeCatalogProducts)}
-        onSubmit={handleCreateSubmit}
-        onClose={closeCreateModal}
-      />
-
-      {/* Details Modal */}
-      {selectedOrder && (
-        <DetailsModal
-          isOpen={isDetailsOpen}
-          order={selectedOrder}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+     <CreateOrderModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
           suppliers={suppliers}
-          isLoading={detailsLoading}
-          actionLoading={actionLoading}
+          currencies={currencies}
+          catalog={catalog}
+          isCatalogLoading={isCatalogLoading}
+          catalogError={catalogError}
           baseCurrency={baseCurrency}
-          onClose={closeDetailsModal}
-          onPrint={() => setIsPrintOpen(true)}
-          onConfirm={handleConfirmOrder}
-          onCancel={handleCancelOrder}
-          onCreateInvoice={() => {
-            setInvoiceDueDate(toDateInput(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)));
-            setIsInvoiceModalOpen(true);
+          selectedSupplierId={selectedSupplierId}
+          selectedCurrencyId={selectedCurrencyId}
+          orderDate={orderDate}
+          paymentType={paymentType}
+          paymentMethod={paymentMethod}
+          paymentTermsDays={paymentTermsDays}
+          paidAmount={paidAmount}
+          supplierInvoiceNumber={supplierInvoiceNumber}
+          supplierInvoiceDate={supplierInvoiceDate}
+          defaultMarginRate={defaultMarginRate}
+          invoiceDiscountRate={invoiceDiscountRate}
+          items={items}
+          formLoading={formLoading}
+          formError={formError}
+          validationDetails={validationDetails}
+          onChangeSupplier={setSelectedSupplierId}
+          onChangeCurrency={setSelectedCurrencyId}
+          onChangeOrderDate={setOrderDate}
+          onChangePayment={(patch) => {
+            if (patch.paymentType !== undefined) setPaymentType(patch.paymentType);
+            if (patch.paymentMethod !== undefined) setPaymentMethod(patch.paymentMethod);
+            if (patch.paymentTermsDays !== undefined) setPaymentTermsDays(patch.paymentTermsDays);
+            if (patch.paidAmount !== undefined) setPaidAmount(patch.paidAmount);
           }}
+          onChangeSupplierInvoice={(patch) => {
+            if (patch.invoiceNumber !== undefined) setSupplierInvoiceNumber(patch.invoiceNumber);
+            if (patch.invoiceDate !== undefined) setSupplierInvoiceDate(patch.invoiceDate);
+          }}
+          onChangeDefaultMargin={setDefaultMarginRate}
+          onChangeInvoiceDiscount={setInvoiceDiscountRate}
+          onAddRow={addItemRow}
+          onRemoveRow={removeItemRow}
+          onChangeItem={updateItemRow}
+          onProductChange={handleProductChange}
+          onUnitChange={handleUnitChange}
+          onSubmit={handleCreateSubmit}
         />
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* Details Modal */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {selectedOrder && (
+        <Modal
+          isOpen={isDetailsOpen}
+          onClose={() => setIsDetailsOpen(false)}
+          title={`تفاصيل أمر الشراء: PO#${selectedOrder.order_number}`}
+          maxWidth="4xl"
+        >
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+              <div>
+                <span className="text-slate-400 block mb-0.5">المورد</span>
+                <span className="font-bold text-slate-900 text-sm">
+                  {selectedOrder.supplier_name || 'مورد'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block mb-0.5">التاريخ</span>
+                <span className="font-mono font-semibold text-slate-800">
+                  {selectedOrder.order_date ? String(selectedOrder.order_date).slice(0, 10) : '-'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block mb-0.5">الإجمالي</span>
+                <span className="font-mono font-black text-emerald-700 text-sm">
+                  {Number(selectedOrder.total || 0).toLocaleString()} {baseCurrency}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block mb-0.5">الحالة</span>
+                <StatusBadge status={selectedOrder.status} />
+              </div>
+            </div>
+
+            {/* Items */}
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-right text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 font-bold">
+                    <th className="py-2.5 px-3">المنتج</th>
+                    <th className="py-2.5 px-3 text-center">الوحدة</th>
+                    <th className="py-2.5 px-3 text-center">الدفعة</th>
+                    <th className="py-2.5 px-3 text-center">الانتهاء</th>
+                    <th className="py-2.5 px-3 text-center">الكمية</th>
+                    <th className="py-2.5 px-3 text-center">البونص</th>
+                    <th className="py-2.5 px-3 text-center">السعر</th>
+                    <th className="py-2.5 px-3 text-left">الإجمالي</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(selectedOrder.items || []).map((it: any, idx: number) => (
+                    <tr key={idx} className="hover:bg-slate-50/50">
+                      <td className="py-2.5 px-3 font-semibold text-slate-800">
+                        {it.product_name || 'منتج'}
+                        {it.sku && <span className="text-slate-400 mr-1">({it.sku})</span>}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        {it.unit_name ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
+                            {it.unit_name}
+                            {Number(it.conversion_factor) > 1 && (
+                              <span className="text-slate-500">×{it.conversion_factor}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono text-[10px]">
+                        {it.batch_number || '-'}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono text-[10px]">
+                        {it.expiry_date ? String(it.expiry_date).slice(0, 10) : '-'}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono">
+                        {it.paid_quantity ?? it.quantity}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono text-emerald-700 font-bold">
+                        {it.bonus_quantity || 0}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono">
+                        {Number(it.unit_price).toFixed(2)}
+                      </td>
+                      <td className="py-2.5 px-3 text-left font-bold text-slate-900 font-mono">
+                        {Number(it.line_total).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPrintOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+                >
+                  <Printer className="w-4 h-4" />
+                  طباعة أمر الشراء
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selectedOrder.status === 'draft' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCancelOrder}
+                      disabled={actionLoading}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      إلغاء
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmOrder}
+                      disabled={actionLoading}
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      {actionLoading ? 'جاري التأكيد...' : 'تأكيد وإضافة للمخزون'}
+                    </button>
+                  </>
+                )}
+
+                {selectedOrder.status === 'confirmed' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInvoiceDueDate(
+                        new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+                          .toISOString()
+                          .slice(0, 10)
+                      );
+                      setIsInvoiceModalOpen(true);
+                    }}
+                    disabled={actionLoading}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition"
+                  >
+                    <FileText className="w-4 h-4" />
+                    تحويل إلى فاتورة شراء
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
       )}
 
-      {/* QR Modal */}
-      <QrModal isOpen={isQrModalOpen} data={qrModalData} onClose={() => setIsQrModalOpen(false)} />
-
-      {/* Invoice Modal */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* Convert to Invoice Modal */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
       <Modal
         isOpen={isInvoiceModalOpen}
         onClose={() => setIsInvoiceModalOpen(false)}
-        title="تحويل إلى فاتورة مشتريات"
+        title="تحويل أمر الشراء إلى فاتورة"
       >
         <div className="space-y-4">
           <p className="text-xs text-slate-600">
-            سيتم إنشاء فاتورة مشتريات رسمية وتسجيل الاستحقاق على المورد.
+            سيتم إنشاء فاتورة شراء نهائية وتسجيل المديونية للمورد.
           </p>
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">تاريخ الاستحقاق</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              تاريخ استحقاق السداد
+            </label>
             <input
               type="date"
               value={invoiceDueDate}
@@ -580,23 +871,27 @@ export const PurchaseOrdersPage: React.FC = () => {
           </div>
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
+              type="button"
               onClick={() => setIsInvoiceModalOpen(false)}
               className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl"
             >
               إلغاء
             </button>
             <button
+              type="button"
               onClick={handleCreateInvoice}
               disabled={actionLoading}
-              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl disabled:opacity-50"
+              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl"
             >
-              {actionLoading ? '...' : 'تأكيد'}
+              {actionLoading ? 'جاري التحويل...' : 'تأكيد إنشاء الفاتورة'}
             </button>
           </div>
         </div>
       </Modal>
 
-      {/* Print */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* Print Preview */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
       {selectedOrder && (
         <PrintPreviewModal
           isOpen={isPrintOpen}
@@ -604,18 +899,19 @@ export const PurchaseOrdersPage: React.FC = () => {
           title="أمر شراء وتوريد"
           documentType="أمر شراء"
           documentNumber={selectedOrder.order_number}
-          documentDate={selectedOrder.order_date ? String(selectedOrder.order_date).slice(0, 10) : ''}
+          documentDate={
+            selectedOrder.order_date ? String(selectedOrder.order_date).slice(0, 10) : ''
+          }
           partyTitle="المورد"
-          partyName={selectedOrder.supplier_name || 'مورد عام'}
+          partyName={selectedOrder.supplier_name || 'مورد'}
           currencyCode={baseCurrency}
           company={company}
           items={(selectedOrder.items || []).map((it: any) => ({
-            name: it.product_name || 'دواء',
+            name: it.product_name || 'منتج',
             sku: it.sku,
             quantity: Number(it.paid_quantity ?? it.quantity),
             bonus_quantity: Number(it.bonus_quantity || 0),
             unit_price: Number(it.unit_price),
-            discount: it.discount_rate ? `${it.discount_rate}%` : undefined,
             tax: it.tax_rate ? `${it.tax_rate}%` : undefined,
             total: Number(it.line_total),
           }))}

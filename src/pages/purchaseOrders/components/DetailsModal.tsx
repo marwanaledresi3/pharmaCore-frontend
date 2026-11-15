@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  RefreshCw, Wallet, XCircle, CheckCircle2, Printer, FileText, AlertCircle,
+  RefreshCw, Wallet, XCircle, CheckCircle2, Printer, FileText, AlertCircle, QrCode,
 } from 'lucide-react';
 import { PurchaseOrder, Supplier } from '../../../types';
 import { PaymentMethod, PaymentType } from '../../../api/ordersApi';
@@ -12,6 +12,7 @@ import { Modal } from '../../../components/common/Modal';
 import { StatusBadge } from '../../../components/common/Badge';
 import { SupplierKindBadge } from './SupplierKindBadge';
 import { pdfApi } from '../../../api/pdfApi1';
+import { QRData } from '../types';
 
 interface Props {
   isOpen: boolean;
@@ -20,6 +21,8 @@ interface Props {
   isLoading: boolean;
   actionLoading: boolean;
   baseCurrency: string;
+  qrData?: QRData | null;
+  onShowQr?: () => void;
   onClose: () => void;
   onPrint: () => void;
   onConfirm: () => void;
@@ -34,6 +37,8 @@ export const DetailsModal: React.FC<Props> = ({
   isLoading,
   actionLoading,
   baseCurrency,
+  qrData,
+  onShowQr,
   onClose,
   onPrint,
   onConfirm,
@@ -162,6 +167,7 @@ export const DetailsModal: React.FC<Props> = ({
             <thead>
               <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 font-bold">
                 <th className="py-2.5 px-3">الصنف</th>
+                <th className="py-2.5 px-3 text-center">الوحدة</th>
                 <th className="py-2.5 px-3 text-center">الكمية</th>
                 <th className="py-2.5 px-3 text-center">البونص</th>
                 <th className="py-2.5 px-3 text-center">السعر</th>
@@ -175,6 +181,18 @@ export const DetailsModal: React.FC<Props> = ({
                   <td className="py-2.5 px-3 font-semibold text-slate-800">
                     {it.product_name || 'دواء'}
                     {it.sku && <span className="text-slate-400 mr-1">({it.sku})</span>}
+                  </td>
+                  <td className="py-2.5 px-3 text-center">
+                    {it.unit_name ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
+                        {it.unit_name}
+                        {Number(it.conversion_factor) > 1 && (
+                          <span className="text-slate-500">×{it.conversion_factor}</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
                   </td>
                   <td className="py-2.5 px-3 text-center font-mono">
                     {it.paid_quantity ?? it.quantity}
@@ -199,22 +217,34 @@ export const DetailsModal: React.FC<Props> = ({
 
         {/* Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
-          <button
-            onClick={onPrint}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg"
-          >
-            <Printer className="w-4 h-4" /> طباعة
-          </button>
-          {order.status === 'approved' && order.supplier_company_id && (
+          <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={() => pdfApi.downloadDeliveryNotePdf(String(order.order_number))}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg"
+              onClick={onPrint}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg"
             >
-              <FileText className="w-4 h-4" /> بوليصة تسليم
+              <Printer className="w-4 h-4" /> طباعة
             </button>
-          )}
 
-          <div className="flex items-center gap-2">
+            {order.status === 'approved' && order.supplier_company_id && (
+              <button
+                onClick={() => pdfApi.downloadDeliveryNotePdf(String(order.order_number))}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg"
+              >
+                <FileText className="w-4 h-4" /> بوليصة تسليم
+              </button>
+            )}
+
+            {qrData && order.status === 'approved' && onShowQr && (
+              <button
+                onClick={onShowQr}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg"
+              >
+                <QrCode className="w-4 h-4" /> عرض QR التسليم
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
             {order.status === 'draft' && (
               <>
                 <button

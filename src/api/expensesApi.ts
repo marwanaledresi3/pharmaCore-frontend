@@ -61,7 +61,9 @@ export const expensesApi = {
   });
 },
 
-  cancel: async (id: string) => {
-    return request(`/expenses/${id}/cancel`, { method: 'POST' });
-  },
+ cancel: async (id: string): Promise<{ id: string; status: string }> => {
+  return request<{ id: string; status: string }>(`/expenses/${id}/cancel`, {
+    method: 'POST',
+  });
+},
 };

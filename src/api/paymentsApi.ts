@@ -50,11 +50,11 @@ export const paymentsApi = {
     });
   },
 
-  remove: async (id: string) => {
-    return request(`/payments/${id}`, {
-      method: 'DELETE',
-    });
-  },
+ remove: async (id: string): Promise<{ id: string; deleted: boolean }> => {
+  return request<{ id: string; deleted: boolean }>(`/payments/${id}`, {
+    method: 'DELETE',
+  });
+},
 
   refund: async (data: {
     customer_id: string;

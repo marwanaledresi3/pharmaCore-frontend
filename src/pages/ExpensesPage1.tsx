@@ -25,6 +25,7 @@ import { PrintPreviewModal, exportToCsv } from '../components/common/PrintPrevie
 import { PayExpenseModal } from './PayExpenseModal';
 import { useAuth } from '../context/AuthContext';
 import { pdfApi } from '../api/pdfApi1';
+
 /* ============================================================
  * Constants
  * ============================================================ */
@@ -444,7 +445,7 @@ export const ExpensesPage: React.FC = () => {
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {/* طباعة (client-side) */}
+                          {/* طباعة */}
                           <button
                             type="button"
                             onClick={() => { setSelectedExpense(e); setIsPrintOpen(true); }}
@@ -452,6 +453,26 @@ export const ExpensesPage: React.FC = () => {
                             className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
                           >
                             <Printer className="w-4 h-4" />
+                          </button>
+
+                          {/* PDF معاينة */}
+                          <button
+                            type="button"
+                            onClick={() => pdfApi.previewExpense(e.id)}
+                            title="عرض PDF"
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+
+                          {/* PDF تحميل */}
+                          <button
+                            type="button"
+                            onClick={() => pdfApi.downloadExpensePdf(e.id, e.expense_number)}
+                            title="تحميل PDF"
+                            className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                          >
+                            <Download className="w-4 h-4" />
                           </button>
 
                           {/* دفع (للمصروفات غير النقدية فقط) */}
@@ -480,20 +501,6 @@ export const ExpensesPage: React.FC = () => {
                             </button>
                           )}
                         </div>
-                        <button
-                          onClick={() => pdfApi.previewExpense(e.id)}
-                          title="عرض PDF"
-                          className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => pdfApi.downloadExpensePdf(e.id, e.expense_number)}
-                          title="تحميل PDF"
-                          className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
                       </td>
                     </tr>
                   ))}
@@ -773,7 +780,7 @@ export const ExpensesPage: React.FC = () => {
               </div>
             </div>
 
-                       {/* Actions داخل التفاصيل */}
+            {/* Actions داخل التفاصيل */}
             <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"

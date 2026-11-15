@@ -1,16 +1,22 @@
 import { request, normalizeList } from './client';
 import { Warehouse, Batch, PaginatedResult } from '../types';
+
 export interface WarehouseLite {
   id: string;
   name: string;
   code?: string | null;
   is_active?: boolean;
+  manager: string | null;
+  phone: string | null;
+  location: string | null;
+  is_default: boolean;
 }
 export const warehousesApi = {
-  list: async (): Promise<PaginatedResult<Warehouse>> => {
-    const res = await request('/warehouses');
-    return normalizeList<Warehouse>(res);
+  
+  list: async (params?: { is_active?: boolean }): Promise<Warehouse[]> => {
+    return request<Warehouse[]>('/warehouses', { params });
   },
+
   lists: async (params?: { is_active?: boolean; page?: number; limit?: number }) => {
     const res = await request('/warehouses', { params });
     return normalizeList<WarehouseLite>(res) as PaginatedResult<WarehouseLite>;

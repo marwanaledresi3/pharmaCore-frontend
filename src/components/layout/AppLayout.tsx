@@ -22,7 +22,14 @@ import { ReportsPage } from '../../pages/reports/ReportsPage';
 import { B2BMarketplacePage } from '../../pages/B2BMarketplacePage';
 import { UsersPage } from '../../pages/UsersPage';
 import { SettingsPage } from '../../pages/SettingsPage';
+import { SettingsLayout } from '../../pages/settings/SettingsLayout';
 import { BranchesPage } from '../../pages/BranchesPage';
+import { DocumentsPage } from '../../pages/DocumentsPage';
+import { StockTransfersPage } from '../../pages/StockTransfersPage';
+import { StockAdjustmentsPage } from '../../pages/StockAdjustmentsPage';
+import { DeliveryNotesPage } from '../../pages/DeliveryNotesPage';
+import { GoodsReceiptsPage } from '../../pages/GoodsReceiptsPage';
+
 export const AppLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
@@ -61,12 +68,22 @@ export const AppLayout: React.FC = () => {
         return <CurrenciesPage />;
       case 'reports':
         return <ReportsPage />;
+      case 'documents':
+        return <DocumentsPage />;
+      case 'stock-transfers':
+        return <StockTransfersPage />;
+      case 'stock-adjustments':
+        return <StockAdjustmentsPage />;
+      case 'delivery-notes':
+        return <DeliveryNotesPage />;
       case 'b2b':
         return <B2BMarketplacePage />;
+      case 'goods-receipts':
+        return <GoodsReceiptsPage />;
       case 'users':
         return <UsersPage />;
       case 'settings':
-        return <SettingsPage />;
+        return <SettingsLayout />;
       case 'branches':
         return <BranchesPage />;
       default:

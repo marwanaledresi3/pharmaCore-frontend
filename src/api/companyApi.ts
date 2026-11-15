@@ -56,6 +56,16 @@ export const companyApi = {
       body: JSON.stringify(data),
     });
   },
+  getSettingsGrouped: async (): Promise<Record<string, Record<string, any>>> => {
+  return request<Record<string, Record<string, any>>>('/companies/settings/grouped');
+},
+
+getPaymentAccounts: async (): Promise<{
+  cash_accounts: Array<{ id: string; code: string; name: string }>;
+  bank_accounts: Array<{ id: string; code: string; name: string }>;
+}> => {
+  return request('/companies/payment-accounts');
+},
 
   // === Users Management ===
   listUsers: async (params?: { page?: number; limit?: number }): Promise<PaginatedResult<User>> => {

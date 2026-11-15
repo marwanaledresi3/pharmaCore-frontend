@@ -6,9 +6,26 @@ export const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
 export const normalize = (s: unknown) => String(s ?? '').trim().toLowerCase();
 
 /**
+ * يُرجع معامل التحويل للوحدة المختارة.
+ * - unit_id = null → 1 (الوحدة الأساسية)
+ * - وإلا → conversion_factor من product.units
+ */
+export function resolveUnitFactor(
+  product:
+    | { units?: Array<{ unit_id: string; conversion_factor: number }> }
+    | undefined,
+  unitId: string | null
+): number {
+  if (!unitId) return 1;
+  const unit = product?.units?.find((u) => u.unit_id === unitId);
+  return Number(unit?.conversion_factor) || 1;
+}
+
+/**
  * يحسب صف بند واحد.
  * - النسبة تفوز إذا > 0
  * - وإلا المبلغ (مع سقف عند الإجمالي)
+ * - unit_price هو سعر الوحدة المختارة
  */
 export function computeItemLine(opts: {
   paidQuantity: number;

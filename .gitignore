@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+project_structure.txt
+structure.txt

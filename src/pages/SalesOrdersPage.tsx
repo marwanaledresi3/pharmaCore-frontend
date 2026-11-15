@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ShoppingCart,
   Search,
@@ -34,12 +34,50 @@ import { PrintPreviewModal, exportToCsv } from '../components/common/PrintPrevie
 import { useAuth } from '../context/AuthContext';
 import { pdfApi } from '../api/pdfApi1';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface DraftItem {
+  uid: string;
+  product_id: string;
+  paid_quantity: number;
+  bonus_quantity: number;
+  unit_price: number;
+  tax_rate: number;
+  unit_id: string | null;
+  conversion_factor: number;
+}
+
+const uid = () => `d_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════════════════
+
+function resolveUnitFactor(
+  product: { units?: Array<{ unit_id: string; conversion_factor: number }> } | undefined,
+  unitId: string | null
+): number {
+  if (!unitId) return 1;
+  const unit = product?.units?.find((u) => u.unit_id === unitId);
+  return Number(unit?.conversion_factor) || 1;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Page
+// ═══════════════════════════════════════════════════════════════════════════
+
 export const SalesOrdersPage: React.FC = () => {
   const { company } = useAuth();
   const baseCurrency = company?.currency_code || 'YER';
 
   const [orders, setOrders] = useState<SalesOrder[]>([]);
-  const [pagination, setPagination] = useState<PaginationType>({ page: 1, limit: 15, total: 0 });
+  const [pagination, setPagination] = useState<PaginationType>({
+    page: 1,
+    limit: 15,
+    total: 0,
+  });
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,16 +92,13 @@ export const SalesOrdersPage: React.FC = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedCurrencyId, setSelectedCurrencyId] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
-  const [items, setItems] = useState<
-    Array<{
-      product_id: string;
-      paid_quantity: number;
-      bonus_quantity: number;
-      unit_price: number;
-      discount_rate: number;
-      tax_rate: number;
-    }>
-  >([]);
+  const [items, setItems] = useState<DraftItem[]>([]);
+
+  // 🆕 Payment & Discount
+  const [paymentType, setPaymentType] = useState<'cash' | 'credit' | 'partial'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank' | 'cheque'>('cash');
+  const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [invoiceDiscountRate, setInvoiceDiscountRate] = useState<number>(0);
 
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -77,41 +112,63 @@ export const SalesOrdersPage: React.FC = () => {
   // Print Modal
   const [isPrintOpen, setIsPrintOpen] = useState(false);
 
-  // Invoice creation from SO modal
+  // Invoice Modal
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceDueDate, setInvoiceDueDate] = useState('');
 
-  const loadData = async (page = 1) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const statusParam =
-        statusFilter === 'all'
-          ? undefined
-          : (statusFilter as 'draft' | 'confirmed' | 'invoiced' | 'cancelled');
+  // ══════════════════════════════════════════════════════════════════════
+  // Load Data
+  // ══════════════════════════════════════════════════════════════════════
 
-      const [ordersRes, custRes, prodRes, curRes] = await Promise.all([
-        ordersApi.listSalesOrders({ status: statusParam, page, limit: 15 }),
-        customersApi.list({ is_active: true, limit: 100 }),
-        productsApi.list({ is_active: true, limit: 100 }),
-        companyApi.listCurrencies(),
-      ]);
+  const loadData = useCallback(
+    async (page = 1) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const statusParam =
+          statusFilter === 'all'
+            ? undefined
+            : (statusFilter as 'draft' | 'confirmed' | 'invoiced' | 'cancelled');
 
-      setOrders(ordersRes.items);
-      setPagination(ordersRes.pagination);
-      setCustomers(custRes.items);
-      setProducts(prodRes.items);
-      setCurrencies(curRes);
-    } catch (err: any) {
-      setError(err.message || 'فشل تحميل أوامر البيع');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        const [ordersRes, custRes, prodRes, curRes] = await Promise.all([
+          ordersApi.listSalesOrders({ status: statusParam, page, limit: 15 }),
+          customersApi.list({ is_active: true, limit: 100 }),
+          productsApi.list({ is_active: true, limit: 100 }),
+          companyApi.listCurrencies(),
+        ]);
+
+        setOrders(ordersRes.items);
+        setPagination(ordersRes.pagination);
+        setCustomers(custRes.items);
+        setProducts(prodRes.items);
+        setCurrencies(curRes);
+      } catch (err: any) {
+        setError(err.message || 'فشل تحميل أوامر البيع');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [statusFilter]
+  );
 
   useEffect(() => {
     loadData(1);
-  }, [statusFilter]);
+  }, [statusFilter]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Item helpers
+  // ══════════════════════════════════════════════════════════════════════
+
+  const buildDefaultItem = (prod: Product): DraftItem => ({
+    uid: uid(),
+    product_id: prod.id,
+    paid_quantity: 1,
+    bonus_quantity: 0,
+    unit_price: Number(prod.selling_price || 0),
+    tax_rate: 0,
+    unit_id: null,
+    conversion_factor: 1,
+  });
 
   const openCreateModal = () => {
     const firstCust = customers[0]?.id || '';
@@ -121,21 +178,13 @@ export const SalesOrdersPage: React.FC = () => {
     setSelectedCustomerId(firstCust);
     setSelectedCurrencyId(firstCur);
     setOrderDate(new Date().toISOString().slice(0, 10));
+    setItems(firstProd ? [buildDefaultItem(firstProd)] : []);
 
-    if (firstProd) {
-      setItems([
-        {
-          product_id: firstProd.id,
-          paid_quantity: 1,
-          bonus_quantity: 0,
-          unit_price: Number(firstProd.selling_price || 0),
-          discount_rate: 0,
-          tax_rate: 0,
-        },
-      ]);
-    } else {
-      setItems([]);
-    }
+    // 🆕 Reset
+    setPaymentType('cash');
+    setPaymentMethod('cash');
+    setPaidAmount(0);
+    setInvoiceDiscountRate(0);
 
     setFormError(null);
     setValidationDetails(undefined);
@@ -145,59 +194,103 @@ export const SalesOrdersPage: React.FC = () => {
   const addItemRow = () => {
     const firstProd = products[0];
     if (!firstProd) return;
-    setItems((prev) => [
-      ...prev,
-      {
-        product_id: firstProd.id,
-        paid_quantity: 1,
-        bonus_quantity: 0,
-        unit_price: Number(firstProd.selling_price || 0),
-        discount_rate: 0,
-        tax_rate: 0,
-      },
-    ]);
+    setItems((prev) => [...prev, buildDefaultItem(firstProd)]);
   };
 
-  const removeItemRow = (index: number) => {
+  const removeItemRow = (uidToRemove: string) => {
     if (items.length <= 1) return;
-    setItems((prev) => prev.filter((_, i) => i !== index));
+    setItems((prev) => prev.filter((it) => it.uid !== uidToRemove));
   };
 
-  const updateItemRow = (index: number, field: string, val: any) => {
+  const updateItemRow = (uidToUpdate: string, patch: Partial<DraftItem>) => {
     setItems((prev) =>
-      prev.map((it, i) => {
-        if (i !== index) return it;
-        const updated = { ...it, [field]: val };
-        if (field === 'product_id') {
-          const prod = products.find((p) => p.id === val);
-          if (prod) {
-            updated.unit_price = Number(prod.selling_price) || 0;
-          }
-        }
-        return updated;
-      })
+      prev.map((it) => (it.uid !== uidToUpdate ? it : { ...it, ...patch }))
     );
   };
 
-  const calculateSubtotal = () => {
-    return items.reduce((acc, it) => {
-      const gross = it.paid_quantity * it.unit_price;
-      const discount = gross * (it.discount_rate / 100);
-      return acc + Math.max(0, gross - discount);
-    }, 0);
+  const handleProductChange = (uidToUpdate: string, newProductId: string) => {
+    const prod = products.find((p) => p.id === newProductId);
+    if (!prod) {
+      updateItemRow(uidToUpdate, { product_id: newProductId });
+      return;
+    }
+    updateItemRow(uidToUpdate, {
+      product_id: newProductId,
+      unit_id: null,
+      conversion_factor: 1,
+      unit_price: Number(prod.selling_price || 0),
+    });
   };
 
-  const calculateTaxTotal = () => {
+  const handleUnitChange = (uidToUpdate: string, newUnitId: string | null) => {
+    const item = items.find((it) => it.uid === uidToUpdate);
+    if (!item) return;
+
+    const product = products.find((p) => p.id === item.product_id);
+    if (!product) return;
+
+    const factor = resolveUnitFactor(product, newUnitId);
+    const basePrice = Number(product.selling_price || 0);
+    let unitPrice = basePrice;
+
+    if (newUnitId && product.units) {
+      const unit = product.units.find((u) => u.unit_id === newUnitId);
+      if (unit) {
+        if (unit.sale_price != null && Number(unit.sale_price) > 0) {
+          unitPrice = Number(unit.sale_price);
+        } else {
+          unitPrice = basePrice * factor;
+        }
+      }
+    }
+
+    updateItemRow(uidToUpdate, {
+      unit_id: newUnitId,
+      conversion_factor: factor,
+      unit_price: unitPrice,
+    });
+  };
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Totals
+  // ══════════════════════════════════════════════════════════════════════
+
+  const subtotal = useMemo(() => {
     return items.reduce((acc, it) => {
       const gross = it.paid_quantity * it.unit_price;
-      const discount = gross * (it.discount_rate / 100);
-      const net = Math.max(0, gross - discount);
-      return acc + net * (it.tax_rate / 100);
+      return acc + gross;
     }, 0);
-  };
+  }, [items]);
+
+  // 🆕 إجمالي الخصم (على الفاتورة)
+  const discountTotal = useMemo(() => {
+    return subtotal * (invoiceDiscountRate / 100);
+  }, [subtotal, invoiceDiscountRate]);
+
+  // 🆕 الصافي بعد الخصم
+  const netAfterDiscount = useMemo(() => {
+    return subtotal - discountTotal;
+  }, [subtotal, discountTotal]);
+
+  const taxTotal = useMemo(() => {
+    return items.reduce((acc, it) => {
+      const gross = it.paid_quantity * it.unit_price;
+      return acc + gross * (it.tax_rate / 100);
+    }, 0);
+  }, [items]);
+
+  // 🆕 الإجمالي النهائي
+  const grandTotal = useMemo(() => {
+    return netAfterDiscount + taxTotal;
+  }, [netAfterDiscount, taxTotal]);
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Create submit
+  // ══════════════════════════════════════════════════════════════════════
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!selectedCustomerId) {
       setFormError('يرجى اختيار العميل');
       return;
@@ -210,6 +303,20 @@ export const SalesOrdersPage: React.FC = () => {
       setFormError('يجب إضافة صنف واحد على الأقل لأمر البيع');
       return;
     }
+    if (items.some((it) => Number(it.unit_price) <= 0)) {
+      setFormError('سعر البيع يجب أن يكون أكبر من صفر لكل بند');
+      return;
+    }
+
+    // ✅ التحقق من نوع الدفع
+    if (paymentType === 'partial' && paidAmount <= 0) {
+      setFormError('يرجى إدخال المبلغ المدفوع');
+      return;
+    }
+    if (paymentType === 'partial' && paidAmount >= grandTotal) {
+      setFormError('المبلغ المدفوع يجب أن يكون أقل من الإجمالي (استخدم نقدي)');
+      return;
+    }
 
     setFormLoading(true);
     setFormError(null);
@@ -220,14 +327,24 @@ export const SalesOrdersPage: React.FC = () => {
         customer_id: selectedCustomerId,
         currency_id: selectedCurrencyId,
         order_date: orderDate,
+
+        // 🆕 الحقول الجديدة
+        payment_type: paymentType,
+        payment_method: paymentMethod,
+        payment_terms_days: paymentType === 'credit' ? 30 : 0,
+        paid_amount: paymentType === 'cash' ? grandTotal : paidAmount,
+        discount_rate: invoiceDiscountRate,
+
         items: items.map((it) => ({
           product_id: it.product_id,
           paid_quantity: Number(it.paid_quantity) || 1,
           bonus_quantity: Number(it.bonus_quantity) || 0,
           quantity: (Number(it.paid_quantity) || 1) + (Number(it.bonus_quantity) || 0),
           unit_price: Number(it.unit_price) || 0,
-          discount_rate: Number(it.discount_rate) || 0,
           tax_rate: Number(it.tax_rate) || 0,
+          ...(it.unit_id
+            ? { unit_id: it.unit_id, conversion_factor: Number(it.conversion_factor) || 1 }
+            : {}),
         })),
       });
 
@@ -243,14 +360,20 @@ export const SalesOrdersPage: React.FC = () => {
     }
   };
 
+  // ══════════════════════════════════════════════════════════════════════
+  // Details
+  // ══════════════════════════════════════════════════════════════════════
+
   const openDetailsModal = async (order: SalesOrder) => {
     setSelectedOrder(order);
     setIsDetailsOpen(true);
+    setIsPrintOpen(false);
+    setIsInvoiceModalOpen(false);
     try {
       const detailed = await ordersApi.getSalesOrder(order.id);
       setSelectedOrder(detailed);
     } catch {
-      //
+      /* silent */
     }
   };
 
@@ -300,12 +423,16 @@ export const SalesOrdersPage: React.FC = () => {
     }
   };
 
+  // ══════════════════════════════════════════════════════════════════════
+  // CSV
+  // ══════════════════════════════════════════════════════════════════════
+
   const handleExportCsv = () => {
     const exportData = orders.map((o) => ({
       'رقم أمر البيع': o.order_number,
       العميل: o.customer_name || '',
       التاريخ: o.order_date ? String(o.order_date).slice(0, 10) : '',
-      المبلغ_الصافي: o.subtotal,
+      'المبلغ الصافي': o.subtotal,
       الضريبة: o.tax_total,
       الإجمالي: o.total,
       الحالة: o.status,
@@ -313,12 +440,18 @@ export const SalesOrdersPage: React.FC = () => {
     exportToCsv(exportData, 'sales_orders');
   };
 
+  // ══════════════════════════════════════════════════════════════════════
+  // Render
+  // ══════════════════════════════════════════════════════════════════════
+
   return (
     <div dir="rtl" className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">أوامر البيع والصرف</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            أوامر البيع والصرف
+          </h1>
           <p className="text-xs text-slate-500 mt-1">
             إدارة طلبات العملاء، حساب الخصومات والبونص، التحقق من توفر المخزون، وإصدار الفواتير
           </p>
@@ -420,7 +553,6 @@ export const SalesOrdersPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-left">
                         <div className="flex items-center justify-end gap-1">
-                          
                           <button
                             type="button"
                             onClick={() => pdfApi.previewSalesOrder(o.id)}
@@ -450,7 +582,9 @@ export const SalesOrdersPage: React.FC = () => {
         )}
       </div>
 
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {/* Create Sales Order Modal */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
@@ -462,6 +596,7 @@ export const SalesOrdersPage: React.FC = () => {
         )}
 
         <form onSubmit={handleCreateSubmit} className="space-y-5">
+          {/* Top Fields */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">العميل *</label>
@@ -507,6 +642,63 @@ export const SalesOrdersPage: React.FC = () => {
             </div>
           </div>
 
+          {/* 🆕 Payment Fields */}
+          <div className="p-4 rounded-xl bg-blue-50/40 border border-blue-200">
+            <h4 className="text-xs font-black text-blue-950 mb-3">💳 تفاصيل الدفع</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  نوع الدفع *
+                </label>
+                <select
+                  value={paymentType}
+                  onChange={(e) => setPaymentType(e.target.value as any)}
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="cash">نقدي (Cash)</option>
+                  <option value="credit">آجل (Credit)</option>
+                  <option value="partial">جزئي (Partial)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  طريقة الدفع
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as any)}
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="cash">صندوق (Cash)</option>
+                  <option value="bank">بنك (Bank)</option>
+                  <option value="cheque">شيك (Cheque)</option>
+                </select>
+              </div>
+
+              {paymentType !== 'credit' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    المبلغ المدفوع
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={grandTotal}
+                    step="0.01"
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-mono text-slate-900 focus:border-emerald-500 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    {paymentType === 'cash' ? 'يُملأ تلقائياً بالإجمالي' : 'جزء من الإجمالي'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Items Table */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -525,31 +717,32 @@ export const SalesOrdersPage: React.FC = () => {
               <table className="w-full text-right text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 font-bold">
-                    <th className="py-2.5 px-3 min-w-[200px]">الدواء / الصنف *</th>
+                    <th className="py-2.5 px-3 min-w-[180px]">الدواء / الصنف *</th>
+                    <th className="py-2.5 px-2 text-center min-w-[130px]">الوحدة</th>
                     <th className="py-2.5 px-2 text-center w-24">كمية مدفوعة</th>
-                    <th className="py-2.5 px-2 text-center w-24">بونص مجاني</th>
+                    <th className="py-2.5 px-2 text-center w-24">بونص</th>
                     <th className="py-2.5 px-2 text-center w-28">سعر البيع</th>
-                    <th className="py-2.5 px-2 text-center w-20">خصم %</th>
                     <th className="py-2.5 px-2 text-center w-20">ضريبة %</th>
                     <th className="py-2.5 px-3 text-left w-28">الإجمالي</th>
                     <th className="py-2.5 px-2 text-center w-8"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {items.map((it, idx) => {
+                  {items.map((it) => {
                     const gross = (Number(it.paid_quantity) || 0) * (Number(it.unit_price) || 0);
-                    const disc = gross * ((Number(it.discount_rate) || 0) / 100);
-                    const net = Math.max(0, gross - disc);
-                    const tax = net * ((Number(it.tax_rate) || 0) / 100);
-                    const lineTotal = net + tax;
+                    const tax = gross * ((Number(it.tax_rate) || 0) / 100);
+                    const lineTotal = gross + tax;
+
+                    const currentProduct = products.find((p) => p.id === it.product_id);
+                    const units = currentProduct?.units || [];
 
                     return (
-                      <tr key={idx} className="hover:bg-slate-50/50">
+                      <tr key={it.uid} className="hover:bg-slate-50/50">
                         <td className="p-2">
                           <select
                             required
                             value={it.product_id}
-                            onChange={(e) => updateItemRow(idx, 'product_id', e.target.value)}
+                            onChange={(e) => handleProductChange(it.uid, e.target.value)}
                             className="w-full rounded-lg border border-slate-300 p-1.5 text-xs text-slate-800 focus:outline-none"
                           >
                             {products.map((p) => (
@@ -560,6 +753,32 @@ export const SalesOrdersPage: React.FC = () => {
                           </select>
                         </td>
 
+                        {/* الوحدة */}
+                        <td className="p-2 text-center">
+                          <select
+                            value={it.unit_id || ''}
+                            onChange={(e) => handleUnitChange(it.uid, e.target.value || null)}
+                            className="w-full rounded-lg border border-slate-300 p-1.5 text-xs text-slate-800 focus:border-emerald-500"
+                          >
+                            <option value="">
+                              أساسية ({currentProduct?.unit || 'وحدة'})
+                            </option>
+                            {units
+                              .filter((u) => !u.is_base_unit)
+                              .map((u) => (
+                                <option key={u.unit_id} value={u.unit_id}>
+                                  {u.unit_name} (×{u.conversion_factor})
+                                </option>
+                              ))}
+                          </select>
+                          {Number(it.conversion_factor) > 1 && (
+                            <span className="block text-[9px] text-emerald-600 mt-0.5">
+                              = {it.paid_quantity * it.conversion_factor}{' '}
+                              {currentProduct?.unit || 'وحدة'}
+                            </span>
+                          )}
+                        </td>
+
                         <td className="p-2 text-center">
                           <input
                             type="number"
@@ -567,7 +786,7 @@ export const SalesOrdersPage: React.FC = () => {
                             min="1"
                             value={it.paid_quantity}
                             onChange={(e) =>
-                              updateItemRow(idx, 'paid_quantity', Number(e.target.value))
+                              updateItemRow(it.uid, { paid_quantity: Number(e.target.value) })
                             }
                             className="w-full rounded-lg border border-slate-300 p-1.5 text-xs text-center font-mono"
                           />
@@ -579,7 +798,7 @@ export const SalesOrdersPage: React.FC = () => {
                             min="0"
                             value={it.bonus_quantity}
                             onChange={(e) =>
-                              updateItemRow(idx, 'bonus_quantity', Number(e.target.value))
+                              updateItemRow(it.uid, { bonus_quantity: Number(e.target.value) })
                             }
                             className="w-full rounded-lg border border-slate-300 p-1.5 text-xs text-center font-mono text-emerald-700 font-bold"
                           />
@@ -593,21 +812,7 @@ export const SalesOrdersPage: React.FC = () => {
                             required
                             value={it.unit_price}
                             onChange={(e) =>
-                              updateItemRow(idx, 'unit_price', Number(e.target.value))
-                            }
-                            className="w-full rounded-lg border border-slate-300 p-1.5 text-xs text-center font-mono"
-                          />
-                        </td>
-
-                        <td className="p-2 text-center">
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="100"
-                            value={it.discount_rate}
-                            onChange={(e) =>
-                              updateItemRow(idx, 'discount_rate', Number(e.target.value))
+                              updateItemRow(it.uid, { unit_price: Number(e.target.value) })
                             }
                             className="w-full rounded-lg border border-slate-300 p-1.5 text-xs text-center font-mono"
                           />
@@ -620,7 +825,9 @@ export const SalesOrdersPage: React.FC = () => {
                             min="0"
                             max="100"
                             value={it.tax_rate}
-                            onChange={(e) => updateItemRow(idx, 'tax_rate', Number(e.target.value))}
+                            onChange={(e) =>
+                              updateItemRow(it.uid, { tax_rate: Number(e.target.value) })
+                            }
                             className="w-full rounded-lg border border-slate-300 p-1.5 text-xs text-center font-mono"
                           />
                         </td>
@@ -633,7 +840,7 @@ export const SalesOrdersPage: React.FC = () => {
                           {items.length > 1 && (
                             <button
                               type="button"
-                              onClick={() => removeItemRow(idx)}
+                              onClick={() => removeItemRow(it.uid)}
                               className="text-slate-400 hover:text-rose-600 transition"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -648,25 +855,65 @@ export const SalesOrdersPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Totals Summary */}
+          {/* 🆕 Totals */}
           <div className="flex justify-end p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="w-64 space-y-1.5 text-xs text-slate-600">
+            <div className="w-80 space-y-1.5 text-xs text-slate-600">
               <div className="flex justify-between">
-                <span>المبلغ الصافي:</span>
+                <span>المجموع الصافي:</span>
                 <span className="font-mono font-bold text-slate-800">
-                  {calculateSubtotal().toFixed(2)} {baseCurrency}
+                  {subtotal.toFixed(2)} {baseCurrency}
                 </span>
               </div>
+
+              {/* 🆕 خصم الفاتورة */}
+              <div className="flex justify-between items-center gap-2 py-1">
+                <div className="flex items-center gap-1">
+                  <span>خصم الفاتورة:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={invoiceDiscountRate}
+                    onChange={(e) => setInvoiceDiscountRate(Number(e.target.value))}
+                    className="w-16 rounded border border-slate-300 p-1 text-xs text-center font-mono"
+                  />
+                  <span>%</span>
+                </div>
+                <span className="font-mono text-rose-600 font-bold">
+                  -{discountTotal.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>الصافي بعد الخصم:</span>
+                <span className="font-mono font-bold text-slate-800">
+                  {netAfterDiscount.toFixed(2)}
+                </span>
+              </div>
+
               <div className="flex justify-between">
                 <span>إجمالي الضرائب:</span>
-                <span className="font-mono">{calculateTaxTotal().toFixed(2)} {baseCurrency}</span>
+                <span className="font-mono">
+                  {taxTotal.toFixed(2)}
+                </span>
               </div>
+
               <div className="flex justify-between border-t border-slate-200 pt-1.5 font-bold text-sm text-slate-900">
                 <span>الإجمالي الكلي:</span>
                 <span className="font-mono text-emerald-700">
-                  {(calculateSubtotal() + calculateTaxTotal()).toFixed(2)} {baseCurrency}
+                  {grandTotal.toFixed(2)} {baseCurrency}
                 </span>
               </div>
+
+              {paymentType !== 'credit' && paidAmount > 0 && (
+                <div className="flex justify-between pt-1 border-t border-slate-200">
+                  <span>المتبقي:</span>
+                  <span className="font-mono text-rose-600">
+                    {(grandTotal - paidAmount).toFixed(2)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -689,7 +936,9 @@ export const SalesOrdersPage: React.FC = () => {
         </form>
       </Modal>
 
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {/* Details & Actions Modal */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {selectedOrder && (
         <Modal
           isOpen={isDetailsOpen}
@@ -723,25 +972,38 @@ export const SalesOrdersPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Items table */}
+            {/* Items */}
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-right text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 font-bold">
-                    <th className="py-2.5 px-3">الصنف / الدواء</th>
-                    <th className="py-2.5 px-3 text-center">الكمية المدفوعة</th>
-                    <th className="py-2.5 px-3 text-center">البونص المجاني</th>
+                    <th className="py-2.5 px-3">الصنف</th>
+                    <th className="py-2.5 px-3 text-center">الوحدة</th>
+                    <th className="py-2.5 px-3 text-center">الكمية</th>
+                    <th className="py-2.5 px-3 text-center">البونص</th>
                     <th className="py-2.5 px-3 text-center">السعر</th>
-                    <th className="py-2.5 px-3 text-center">الخصم</th>
+                    <th className="py-2.5 px-3 text-center">الضريبة</th>
                     <th className="py-2.5 px-3 text-left">الإجمالي</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {(selectedOrder.items || []).map((it, idx) => (
+                  {(selectedOrder.items || []).map((it: any, idx: number) => (
                     <tr key={idx} className="hover:bg-slate-50/50">
                       <td className="py-2.5 px-3 font-semibold text-slate-800">
                         {it.product_name || 'دواء'}
                         {it.sku && <span className="text-slate-400 mr-1">({it.sku})</span>}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        {it.unit_name ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
+                            {it.unit_name}
+                            {Number(it.conversion_factor) > 1 && (
+                              <span className="text-slate-500">×{it.conversion_factor}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
                       </td>
                       <td className="py-2.5 px-3 text-center font-mono">
                         {it.paid_quantity ?? it.quantity}
@@ -753,7 +1015,7 @@ export const SalesOrdersPage: React.FC = () => {
                         {Number(it.unit_price).toFixed(2)}
                       </td>
                       <td className="py-2.5 px-3 text-center font-mono text-slate-500">
-                        {it.discount_rate ? `${it.discount_rate}%` : '-'}
+                        {it.tax_rate ? `${it.tax_rate}%` : '-'}
                       </td>
                       <td className="py-2.5 px-3 text-left font-bold text-slate-900 font-mono">
                         {Number(it.line_total).toFixed(2)}
@@ -764,7 +1026,7 @@ export const SalesOrdersPage: React.FC = () => {
               </table>
             </div>
 
-            {/* Action Buttons */}
+            {/* Actions */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
               <div className="flex items-center gap-2">
                 <button
@@ -805,7 +1067,11 @@ export const SalesOrdersPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setInvoiceDueDate(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+                      setInvoiceDueDate(
+                        new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+                          .toISOString()
+                          .slice(0, 10)
+                      );
                       setIsInvoiceModalOpen(true);
                     }}
                     disabled={actionLoading}
@@ -821,7 +1087,9 @@ export const SalesOrdersPage: React.FC = () => {
         </Modal>
       )}
 
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {/* Convert to Invoice Modal */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
       <Modal
         isOpen={isInvoiceModalOpen}
         onClose={() => setIsInvoiceModalOpen(false)}
@@ -862,7 +1130,9 @@ export const SalesOrdersPage: React.FC = () => {
         </div>
       </Modal>
 
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {/* Print Preview Modal */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {selectedOrder && (
         <PrintPreviewModal
           isOpen={isPrintOpen}
@@ -870,12 +1140,14 @@ export const SalesOrdersPage: React.FC = () => {
           title="أمر بيع وصرف"
           documentType="أمر بيع"
           documentNumber={selectedOrder.order_number}
-          documentDate={selectedOrder.order_date ? String(selectedOrder.order_date).slice(0, 10) : ''}
+          documentDate={
+            selectedOrder.order_date ? String(selectedOrder.order_date).slice(0, 10) : ''
+          }
           partyTitle="العميل"
           partyName={selectedOrder.customer_name || 'عميل عام'}
           currencyCode={baseCurrency}
           company={company}
-          items={(selectedOrder.items || []).map((it) => ({
+          items={(selectedOrder.items || []).map((it: any) => ({
             name: it.product_name || 'دواء',
             sku: it.sku,
             quantity: Number(it.paid_quantity ?? it.quantity),

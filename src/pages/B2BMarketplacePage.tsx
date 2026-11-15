@@ -10,10 +10,8 @@ import {
   XCircle,
   Building2,
   Send,
-  Sparkles,
   BookOpen,
   RefreshCw,
-  ExternalLink,
   ShieldCheck,
   Clock,
   Copy,
@@ -22,12 +20,7 @@ import {
   Star,
   MapPin,
   Phone,
-  Mail,
-  Store,
   Filter,
-  CheckCircle2,
-  UserCheck,
-  Database,
 } from 'lucide-react';
 import { b2bApi } from '../api/b2bApi';
 import { suppliersApi } from '../api/suppliersApi';
@@ -56,9 +49,9 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     'directory'
   );
 
-  // ==========================================
-  // DIRECTORY: Registered Companies
-  // ==========================================
+  // ══════════════════════════════════════════════════════════════════════
+  // DIRECTORY
+  // ══════════════════════════════════════════════════════════════════════
   const [directoryCompanies, setDirectoryCompanies] = useState<RegisteredCompanyItem[]>([]);
   const [directoryLoading, setDirectoryLoading] = useState(false);
   const [directoryError, setDirectoryError] = useState<string | null>(null);
@@ -66,28 +59,28 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
   const [directoryType, setDirectoryType] = useState('all');
   const [sendingRequestId, setSendingRequestId] = useState<string | null>(null);
 
-  // Register New Company in Database Modal
+  // Register Company Modal
   const [showRegisterCompanyModal, setShowRegisterCompanyModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
-  const [newCompanyType, setNewCompanyType] = useState<'warehouse' | 'manufacturer' | 'distributor' | 'pharmacy'>('warehouse');
+  const [newCompanyType, setNewCompanyType] = useState<
+    'warehouse' | 'manufacturer' | 'distributor' | 'pharmacy'
+  >('warehouse');
   const [newCompanyPhone, setNewCompanyPhone] = useState('');
   const [newCompanyEmail, setNewCompanyEmail] = useState('');
   const [newCompanyTax, setNewCompanyTax] = useState('');
   const [newCompanyCity, setNewCompanyCity] = useState('صنعاء');
   const [newCompanyAddress, setNewCompanyAddress] = useState('');
   const [registeringCompany, setRegisteringCompany] = useState(false);
-  const [seedingRegistry, setSeedingRegistry] = useState(false);
 
-  // ==========================================
-  // FEED: Posts & Offers
-  // ==========================================
+  // ══════════════════════════════════════════════════════════════════════
+  // FEED
+  // ══════════════════════════════════════════════════════════════════════
   const [posts, setPosts] = useState<CompanyPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [postsPage, setPostsPage] = useState(1);
   const [postsTotalPages, setPostsTotalPages] = useState(1);
 
-  // New Post Modal
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
@@ -95,16 +88,15 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
   const [postIsPublic, setPostIsPublic] = useState(true);
   const [savingPost, setSavingPost] = useState(false);
 
-  // Comments Modal
   const [activePostForComments, setActivePostForComments] = useState<CompanyPost | null>(null);
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  // ==========================================
-  // CATALOG: Global Unified Products
-  // ==========================================
+  // ══════════════════════════════════════════════════════════════════════
+  // CATALOG
+  // ══════════════════════════════════════════════════════════════════════
   const [catalogItems, setCatalogItems] = useState<GlobalProduct[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -113,7 +105,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
   const [catalogTotalPages, setCatalogTotalPages] = useState(1);
   const [catalogTotal, setCatalogTotal] = useState(0);
 
-  // New Global Product Modal
   const [showNewGlobalModal, setShowNewGlobalModal] = useState(false);
   const [newGlobalName, setNewGlobalName] = useState('');
   const [newGlobalUnit, setNewGlobalUnit] = useState('علبة');
@@ -121,17 +112,19 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
   const [newGlobalSku, setNewGlobalSku] = useState('');
   const [newGlobalScientific, setNewGlobalScientific] = useState('');
   const [newGlobalCategory, setNewGlobalCategory] = useState('');
+  const [newGlobalProductType, setNewGlobalProductType] = useState<
+    'drug' | 'supplement' | 'cosmetic' | 'food' | 'device' | 'herbal' | 'veterinary' | 'other'
+  >('drug');
   const [savingGlobal, setSavingGlobal] = useState(false);
 
-  // ==========================================
-  // CONNECTIONS: Relations & Requests
-  // ==========================================
+  // ══════════════════════════════════════════════════════════════════════
+  // CONNECTIONS
+  // ══════════════════════════════════════════════════════════════════════
   const [connections, setConnections] = useState<CompanyConnection[]>([]);
   const [connectionsLoading, setConnectionsLoading] = useState(false);
   const [connectionsError, setConnectionsError] = useState<string | null>(null);
   const [connectionFilter, setConnectionFilter] = useState<'all' | 'pending' | 'accepted'>('all');
 
-  // Manual Request Connection Modal
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [targetCompanyId, setTargetCompanyId] = useState('');
   const [sendingRequest, setSendingRequest] = useState(false);
@@ -139,9 +132,10 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
   const [addingSupplierId, setAddingSupplierId] = useState<string | null>(null);
   const [supplierSuccessMsg, setSupplierSuccessMsg] = useState<string | null>(null);
 
-  // ==========================================
+  // ══════════════════════════════════════════════════════════════════════
   // DATA LOADERS
-  // ==========================================
+  // ══════════════════════════════════════════════════════════════════════
+
   const loadDirectory = useCallback(async () => {
     setDirectoryLoading(true);
     setDirectoryError(null);
@@ -191,12 +185,13 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   }, [catalogSearch, catalogPage]);
 
+  // ✅ FIX: listConnections يُرجع { items, pagination }
   const loadConnections = useCallback(async () => {
     setConnectionsLoading(true);
     setConnectionsError(null);
     try {
       const res = await b2bApi.listConnections();
-      setConnections(res || []);
+      setConnections(res.items || []);
     } catch (err: any) {
       setConnectionsError(err.message || 'تعذر تحميل اتصالات الشركات');
     } finally {
@@ -204,29 +199,23 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   }, []);
 
-  // Trigger loads based on active tab
   useEffect(() => {
-    // Always keep connections up to date for status checking
     loadConnections();
-
-    if (activeSubTab === 'directory') {
-      loadDirectory();
-    } else if (activeSubTab === 'feed') {
-      loadPosts();
-    } else if (activeSubTab === 'catalog') {
-      loadCatalog();
-    } else if (activeSubTab === 'connections') {
-      loadConnections();
-    }
+    if (activeSubTab === 'directory') loadDirectory();
+    else if (activeSubTab === 'feed') loadPosts();
+    else if (activeSubTab === 'catalog') loadCatalog();
+    else if (activeSubTab === 'connections') loadConnections();
   }, [activeSubTab, loadDirectory, loadPosts, loadCatalog, loadConnections]);
 
-  // ==========================================
-  // DIRECTORY ACTION HANDLERS
-  // ==========================================
+  // ══════════════════════════════════════════════════════════════════════
+  // DIRECTORY HANDLERS
+  // ══════════════════════════════════════════════════════════════════════
+
+  // ✅ FIX: sendConnectionRequest بدون argument ثانٍ
   const handleSendDirectRequest = async (targetComp: RegisteredCompanyItem) => {
     setSendingRequestId(targetComp.id);
     try {
-      await b2bApi.sendConnectionRequest(targetComp.id, targetComp);
+      await b2bApi.sendConnectionRequest(targetComp.id);
       await loadConnections();
       setSupplierSuccessMsg(`تم إرسال طلب المصادقة إلى "${targetComp.name}" بنجاح!`);
       setTimeout(() => setSupplierSuccessMsg(null), 5000);
@@ -241,7 +230,9 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     try {
       await b2bApi.updateConnectionStatus(connId, 'accepted');
       await loadConnections();
-      setSupplierSuccessMsg(`تم قبول واعتماد الشراكة مع "${compName}" بنجاح! يمكنك الآن إضافتها كمورد.`);
+      setSupplierSuccessMsg(
+        `تم قبول واعتماد الشراكة مع "${compName}" بنجاح! يمكنك الآن إضافتها كمورد.`
+      );
       setTimeout(() => setSupplierSuccessMsg(null), 5000);
     } catch (err: any) {
       alert(err.message || 'تعذر اعتماد الشراكة');
@@ -269,7 +260,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Register New Company in Database
+  // ✅ FIX: registerCompany بدلاً من registerCompanyInDatabase
   const handleRegisterCompanySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompanyName.trim() || !newCompanyPhone.trim()) {
@@ -279,7 +270,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
 
     setRegisteringCompany(true);
     try {
-      await b2bApi.registerCompanyInDatabase({
+      await b2bApi.registerCompany({
         name: newCompanyName.trim(),
         business_type: newCompanyType,
         phone: newCompanyPhone.trim(),
@@ -305,22 +296,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Seed / Sync Verified Pharmaceutical Companies to Database
-  const handleSeedRegistry = async () => {
-    setSeedingRegistry(true);
-    try {
-      await b2bApi.seedRegisteredCompaniesToDatabase();
-      await loadDirectory();
-      setSupplierSuccessMsg('تم استيراد وتسجيل الشركات المعتمدة في قاعدة البيانات بنجاح!');
-      setTimeout(() => setSupplierSuccessMsg(null), 5000);
-    } catch (err: any) {
-      alert(err.message || 'تعذر استيراد الشركات إلى قاعدة البيانات');
-    } finally {
-      setSeedingRegistry(false);
-    }
-  };
-
-  // Copy Company UUID
   const handleCopyMyCompanyId = () => {
     if (company?.id) {
       navigator.clipboard.writeText(company.id);
@@ -329,20 +304,20 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Add Partner Company to Suppliers Directory from Connections tab
+  // ✅ FIX: استخدام connected_company_id
   const handleAddToSuppliers = async (conn: CompanyConnection) => {
-    const isIncoming = conn.receiver_company_id === company?.id;
-    const other = isIncoming ? conn.requester_company : conn.receiver_company;
-    const otherCompanyId = isIncoming ? conn.requester_company_id : conn.receiver_company_id;
-    if (!other && !otherCompanyId) return;
+    const otherCompanyId = conn.connected_company_id;
+    const supplierName = conn.connected_company_name || 'مورد شريك مسجل';
 
-    const supplierName = other?.name || 'مورد شريك مسجل';
+    if (!otherCompanyId) return;
+
     setAddingSupplierId(conn.id);
     try {
       await suppliersApi.create({
         name: supplierName,
-        phone: other?.phone || undefined,
-        tax_number: other?.tax_number || undefined,
+        phone: conn.connected_company_phone || undefined,
+        tax_number: conn.connected_company_tax_number || undefined,
+        address: conn.connected_company_address || undefined,
         connected_company_id: otherCompanyId,
       });
       setSupplierSuccessMsg(
@@ -356,7 +331,10 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Toggle Like Handler
+  // ══════════════════════════════════════════════════════════════════════
+  // FEED HANDLERS
+  // ══════════════════════════════════════════════════════════════════════
+
   const handleToggleLike = async (postId: string) => {
     try {
       const res = await b2bApi.toggleLike(postId);
@@ -378,7 +356,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Open Comments Modal
   const handleOpenComments = async (post: CompanyPost) => {
     setActivePostForComments(post);
     setCommentsLoading(true);
@@ -392,14 +369,16 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Submit Comment Handler
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activePostForComments || !newCommentText.trim()) return;
 
     setSubmittingComment(true);
     try {
-      const newComment = await b2bApi.addComment(activePostForComments.id, newCommentText.trim());
+      const newComment = await b2bApi.addComment(
+        activePostForComments.id,
+        newCommentText.trim()
+      );
       setComments((prev) => [newComment, ...prev]);
       setNewCommentText('');
       setPosts((prev) =>
@@ -416,7 +395,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Create Post Submit
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postTitle.trim() || !postContent.trim()) return;
@@ -441,7 +419,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Create Global Product Submit
+  // ✅ FIX: product_type إلزامي
   const handleCreateGlobal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGlobalName.trim() || !newGlobalUnit.trim()) return;
@@ -451,6 +429,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
       await b2bApi.createGlobalProduct({
         name: newGlobalName.trim(),
         unit: newGlobalUnit.trim(),
+        product_type: newGlobalProductType,
         barcode: newGlobalBarcode.trim() || undefined,
         sku: newGlobalSku.trim() || undefined,
         scientific_name: newGlobalScientific.trim() || undefined,
@@ -470,7 +449,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Send Manual Connection Request Submit
   const handleSendConnection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetCompanyId.trim()) return;
@@ -490,7 +468,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Update Connection Status
   const handleUpdateStatus = async (
     connectionId: string,
     status: 'accepted' | 'rejected' | 'blocked'
@@ -503,7 +480,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
     }
   };
 
-  // Filter connections for the connections tab
   const filteredConnections = connections.filter((conn) => {
     if (connectionFilter === 'all') return true;
     return conn.status === connectionFilter;
@@ -519,11 +495,10 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
             سوق الأعمال الصيدلانية الموحد (B2B Marketplace)
           </h1>
           <p className="text-xs text-slate-700 mt-1">
-            شبكة تفاعلية حية لربط الموردين والمستودعات والصيدليات، وتبادل العروض الدوائية والمصادقة المباشرة
+            شبكة تفاعلية حية لربط الموردين والمستودعات والصيدليات، وتبادل العروض الدوائية
           </p>
         </div>
 
-        {/* Current Company Quick Info */}
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 text-xs">
           <Building2 className="w-4 h-4 text-emerald-700" />
           <span className="text-slate-600">منشأتك الحالية:</span>
@@ -534,9 +509,9 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
         </div>
       </div>
 
-      {/* Global Success / Feedback Alert */}
+      {/* Global Success Alert */}
       {supplierSuccessMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in duration-200">
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
             <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>{supplierSuccessMsg}</span>
@@ -551,9 +526,8 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
         </div>
       )}
 
-      {/* Main Tabs Navigation */}
+      {/* Main Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto">
-        {/* TAB 1: Registered Companies Directory */}
         <button
           type="button"
           onClick={() => setActiveSubTab('directory')}
@@ -564,13 +538,12 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
           }`}
         >
           <Building2 className="w-4 h-4 text-emerald-600" />
-          دليل الشركات والموردين المسجلين
+          دليل الشركات
           <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
             {directoryCompanies.length}
           </span>
         </button>
 
-        {/* TAB 2: Connections & Partnerships */}
         <button
           type="button"
           onClick={() => setActiveSubTab('connections')}
@@ -581,7 +554,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
           }`}
         >
           <Network className="w-4 h-4 text-blue-600" />
-          علاقات الشراكة والربط الشبكي
+          علاقات الشراكة
           {connections.length > 0 && (
             <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-bold">
               {connections.length}
@@ -592,7 +565,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
           )}
         </button>
 
-        {/* TAB 3: Unified Drug Catalog */}
         <button
           type="button"
           onClick={() => setActiveSubTab('catalog')}
@@ -603,10 +575,9 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
           }`}
         >
           <BookOpen className="w-4 h-4 text-indigo-600" />
-          الفهرس الدوائي الموحد
+          الفهرس الدوائي
         </button>
 
-        {/* TAB 4: Commercial Feed */}
         <button
           type="button"
           onClick={() => setActiveSubTab('feed')}
@@ -617,40 +588,44 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
           }`}
         >
           <Share2 className="w-4 h-4 text-amber-600" />
-          منشورات وعروض الشركات
+          عروض الشركات
         </button>
       </div>
 
-      {/* ============================================================== */}
-      {/* TAB 1: REGISTERED COMPANIES DIRECTORY (PRIMARY USER EXPERIENCE) */}
-      {/* ============================================================== */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* TAB 1: DIRECTORY */}
+      {/* ══════════════════════════════════════════════════════════════ */}
       {activeSubTab === 'directory' && (
         <div className="space-y-6">
-          {/* Hero Banner */}
+          {/* Hero */}
           <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 text-white rounded-3xl p-6 shadow-sm">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5">
                 <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full text-[11px] font-bold border border-emerald-400/30">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  دليل المنشآت الصيدلانية المعتمدة في السوق
+                  دليل المنشآت الصيدلانية المعتمدة
                 </div>
                 <h2 className="text-lg md:text-xl font-black">
-                  تصفح الشركات المسجلة وأرسل طلب مصادقة وربط مباشر بنقرة واحدة
+                  تصفح الشركات وأرسل طلب مصادقة مباشر
                 </h2>
                 <p className="text-xs text-emerald-100/80 max-w-2xl leading-relaxed">
-                  لا حاجة لنسخ معرفات معقدة؛ اختر المنشأة أو المستودع واضغط &quot;إرسال طلب مصادقة&quot; ليتم ربط حسابك بها فوراً وإضافتها لمورديك لإصدار أوامر الشراء.
+                  اختر المنشأة واضغط "إرسال طلب مصادقة" ليتم ربط حسابك بها فوراً.
                 </p>
               </div>
 
               <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-xs text-white space-y-1.5 shrink-0 min-w-[240px]">
                 <div className="flex items-center justify-between">
-                  <span className="text-emerald-200 text-[11px]">معرف شركتك للربط:</span>
+                  <span className="text-emerald-200 text-[11px]">معرف شركتك:</span>
                   <button
                     type="button"
                     onClick={handleCopyMyCompanyId}
                     className="flex items-center gap-1 text-[11px] font-bold text-white hover:text-emerald-300 transition"
                   >
-                    {copiedCompanyId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedCompanyId ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
                     {copiedCompanyId ? 'تم النسخ' : 'نسخ'}
                   </button>
                 </div>
@@ -661,7 +636,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
             </div>
           </div>
 
-          {/* Search & Filter Bar */}
+          {/* Search & Filter */}
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-4">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
@@ -670,7 +645,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                   type="text"
                   value={directorySearch}
                   onChange={(e) => setDirectorySearch(e.target.value)}
-                  placeholder="ابحث باسم المنشأة، المدينة، أو نوع النشاط (مثال: سبأ، صنعاء، مستودع)..."
+                  placeholder="ابحث باسم المنشأة، المدينة، أو النشاط..."
                   className="w-full pl-3 pr-10 py-2.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-slate-50/50"
                 />
               </div>
@@ -696,17 +671,16 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
               </div>
             </div>
 
-            {/* Filter Pills */}
             <div className="flex items-center gap-2 overflow-x-auto pt-1 border-t border-slate-100 text-xs font-bold">
               <span className="text-slate-500 text-[11px] shrink-0 flex items-center gap-1">
                 <Filter className="w-3 h-3" />
-                تصنيف المنشأة:
+                تصنيف:
               </span>
               {[
-                { key: 'all', label: 'جميع المنشآت' },
-                { key: 'warehouse', label: 'مستودعات أدوية جملة' },
-                { key: 'manufacturer', label: 'مصانع وموردين رئيسيين' },
-                { key: 'distributor', label: 'وكلاء وموزعين معتمدين' },
+                { key: 'all', label: 'الكل' },
+                { key: 'warehouse', label: 'مستودعات' },
+                { key: 'manufacturer', label: 'مصانع' },
+                { key: 'distributor', label: 'موزعين' },
                 { key: 'pharmacy', label: 'صيدليات' },
               ].map((tab) => (
                 <button
@@ -725,17 +699,16 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
             </div>
           </div>
 
-          {directoryError && <ErrorAlert message={directoryError} onRetry={loadDirectory} />}
+          {directoryError && <ErrorAlert error={directoryError} onRetry={loadDirectory} />}
 
-          {/* Directory Grid */}
           {directoryLoading ? (
             <div className="py-20">
-              <LoadingSpinner message="جاري استرجاع دليل الشركات والصيدليات المسجلة..." />
+              <LoadingSpinner message="جاري استرجاع دليل الشركات..." />
             </div>
           ) : directoryCompanies.length === 0 ? (
             <EmptyState
               title="لم يتم العثور على منشآت مطابقة"
-              description="جرب البحث بكلمة أخرى أو مسح الفلاتر لعرض كافة الشركات المسجلة"
+              description="جرب البحث بكلمة أخرى أو مسح الفلاتر"
               actionLabel="إعادة ضبط البحث"
               onAction={() => {
                 setDirectorySearch('');
@@ -745,15 +718,10 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {directoryCompanies.map((comp) => {
-                // Find relation with this company if any
+                // ✅ FIX: استخدام connected_company_id
                 const existingConn = connections.find(
-                  (c) =>
-                    c.receiver_company_id === comp.id ||
-                    c.requester_company_id === comp.id ||
-                    c.receiver_company?.name === comp.name ||
-                    c.requester_company?.name === comp.name
+                  (c) => c.connected_company_id === comp.id
                 );
-
                 const connStatus = existingConn?.status;
 
                 return (
@@ -761,9 +729,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                     key={comp.id}
                     className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden"
                   >
-                    {/* Top Content */}
                     <div className="space-y-3.5">
-                      {/* Company Header */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white font-black text-base flex items-center justify-center shadow-xs shrink-0">
@@ -775,7 +741,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                                 {comp.name}
                               </h3>
                               {comp.verified && (
-                                <span title="منشأة مرخصة وموثقة">
+                                <span title="منشأة مرخصة">
                                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                 </span>
                               )}
@@ -794,11 +760,12 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                         )}
                       </div>
 
-                      {/* Details Box */}
                       <div className="bg-slate-50/80 rounded-2xl p-3 text-xs space-y-1.5 text-slate-600 border border-slate-100">
                         <div className="flex items-center gap-2">
                           <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">{comp.city} - {comp.address || 'اليمن'}</span>
+                          <span className="truncate">
+                            {comp.city} - {comp.address || 'اليمن'}
+                          </span>
                         </div>
                         {comp.phone && (
                           <div className="flex items-center gap-2">
@@ -811,27 +778,21 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                         {comp.tax_number && (
                           <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/50">
                             <span className="text-slate-500">الرقم الضريبي:</span>
-                            <span className="font-mono font-bold text-slate-700">{comp.tax_number}</span>
-                          </div>
-                        )}
-                        {comp.products_count !== undefined && (
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-500">الأصناف الدوائية المتوفرة:</span>
-                            <span className="font-bold text-emerald-700">+{comp.products_count} صنف</span>
+                            <span className="font-mono font-bold text-slate-700">
+                              {comp.tax_number}
+                            </span>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Bottom Dynamic Action Section */}
                     <div className="pt-4 mt-4 border-t border-slate-100">
-                      {/* 1. NOT CONNECTED: Instant Send Request Button */}
                       {!connStatus && (
                         <button
                           type="button"
                           onClick={() => handleSendDirectRequest(comp)}
                           disabled={sendingRequestId === comp.id}
-                          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50 cursor-pointer active:scale-[0.98]"
+                          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50 active:scale-[0.98]"
                         >
                           {sendingRequestId === comp.id ? (
                             <>
@@ -841,59 +802,58 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                           ) : (
                             <>
                               <Send className="w-3.5 h-3.5" />
-                              إرسال طلب مصادقة / ربط
+                              إرسال طلب مصادقة
                             </>
                           )}
                         </button>
                       )}
 
-                      {/* 2. PENDING STATUS */}
                       {connStatus === 'pending' && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded-xl px-3 py-2 font-bold">
                             <span className="flex items-center gap-1.5">
                               <Clock className="w-4 h-4 text-amber-600" />
-                              طلب مصادقة قيد الانتظار
-                            </span>
-                            <span className="text-[10px] text-amber-600 bg-amber-100 px-2 py-0.5 rounded-md">
-                              مرسل
+                              طلب قيد الانتظار
                             </span>
                           </div>
                           {existingConn && (
                             <button
                               type="button"
-                              onClick={() => handleInstantAccept(existingConn.id, comp.name)}
-                              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition cursor-pointer"
+                              onClick={() =>
+                                handleInstantAccept(existingConn.id, comp.name)
+                              }
+                              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition"
                             >
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                              قبول الشراكة الآن (تفعيل فوري)
+                              قبول الشراكة الآن
                             </button>
                           )}
                         </div>
                       )}
 
-                      {/* 3. ACCEPTED STATUS */}
                       {connStatus === 'accepted' && (
                         <div className="space-y-2">
                           <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
                             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                            <span>شريك مصادق عليه ومعتمد ✓</span>
+                            <span>شريك مصادق عليه ✓</span>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <button
                               type="button"
                               onClick={() => handleAddToSuppliersFromDirectory(comp)}
                               disabled={addingSupplierId === comp.id}
-                              className="flex items-center justify-center gap-1 py-2 px-2 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition disabled:opacity-50 cursor-pointer"
+                              className="flex items-center justify-center gap-1 py-2 px-2 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition disabled:opacity-50"
                             >
                               <Truck className="w-3.5 h-3.5 text-slate-600" />
-                              {addingSupplierId === comp.id ? 'جاري الإضافة...' : 'إضافة كمورد'}
+                              {addingSupplierId === comp.id
+                                ? 'جاري الإضافة...'
+                                : 'إضافة كمورد'}
                             </button>
                             {onNavigate && (
                               <button
                                 type="button"
                                 onClick={() => onNavigate('purchase-orders')}
-                                className="flex items-center justify-center gap-1 py-2 px-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition cursor-pointer"
+                                className="flex items-center justify-center gap-1 py-2 px-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition"
                               >
                                 <Plus className="w-3.5 h-3.5" />
                                 طلب شراء
@@ -903,7 +863,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                         </div>
                       )}
 
-                      {/* 4. REJECTED STATUS */}
                       {connStatus === 'rejected' && (
                         <div className="flex items-center justify-between text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-2 font-bold">
                           <span>تم رفض الطلب</span>
@@ -925,18 +884,18 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
         </div>
       )}
 
-      {/* ============================================================== */}
-      {/* TAB 2: COMPANY CONNECTIONS & REQUESTS */}
-      {/* ============================================================== */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* TAB 2: CONNECTIONS */}
+      {/* ══════════════════════════════════════════════════════════════ */}
       {activeSubTab === 'connections' && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-sm font-bold text-slate-800">
-                علاقات الشراكة والربط الشبكي بين المنشآت
+                علاقات الشراكة والربط الشبكي
               </h2>
               <p className="text-xs text-slate-700">
-                إدارة طلبات الربط لتبادل الفواتير، عروض الأسعار، والمزامنة اللوجستية المباشرة
+                إدارة طلبات الربط لتبادل الفواتير وعروض الأسعار
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -955,17 +914,16 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                 className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition"
               >
                 <Plus className="w-4 h-4" />
-                طلب ربط منشأة صيدلانية
+                طلب ربط جديد
               </button>
             </div>
           </div>
 
-          {/* Company UUID Sharing Card */}
           <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-emerald-900">
-                  معرّف منشأتك (Company UUID) للربط التجاري:
+                  معرف منشأتك (Company UUID):
                 </span>
                 <span className="text-[10px] bg-emerald-200/60 text-emerald-950 font-bold px-2 py-0.5 rounded-full">
                   جاهز للمشاركة
@@ -973,9 +931,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
               </div>
               <p className="text-[11px] text-emerald-900 font-mono select-all">
                 {company?.id || 'غير متوفر'}
-              </p>
-              <p className="text-[10px] text-slate-700">
-                أعطِ هذا الرمز لأي شركة مسجلة لترسل لك طلب ربط، أو استخدم زر &quot;طلب ربط منشأة صيدلانية&quot;.
               </p>
             </div>
             <button
@@ -997,7 +952,6 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
             </button>
           </div>
 
-          {/* Filter Bar */}
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl p-1.5 w-fit text-xs font-bold">
             <button
               type="button"
@@ -1035,7 +989,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
           </div>
 
           {connectionsError && (
-            <ErrorAlert message={connectionsError} onRetry={loadConnections} />
+            <ErrorAlert error={connectionsError} onRetry={loadConnections} />
           )}
 
           {connectionsLoading ? (
@@ -1046,21 +1000,22 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
             <EmptyState
               title="لا توجد اتصالات في هذا القسم"
               description="أرسل طلب ربط إلى الصيدليات أو الموردين لبدء التبادل التجاري الآمن"
-              actionLabel="تصفح دليل الشركات لإرسال طلب"
+              actionLabel="تصفح دليل الشركات"
               onAction={() => setActiveSubTab('directory')}
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredConnections.map((conn) => {
                 const isIncoming = conn.receiver_company_id === company?.id;
-                // دمج الحقول المسطحة القادمة من الباك اند في كائن واحد موحد
-  const otherCompany = {
-    id: conn.connected_company_id,
-    name: conn.connected_company_name,
-    phone: conn.connected_company_phone,
-    address: conn.connected_company_address,
-    tax_number: conn.connected_company_tax_number,
-  };
+
+                // ✅ FIX: استخدام connected_company_*
+                const otherCompany = {
+                  id: conn.connected_company_id,
+                  name: conn.connected_company_name,
+                  phone: conn.connected_company_phone,
+                  address: conn.connected_company_address,
+                  tax_number: conn.connected_company_tax_number,
+                };
 
                 return (
                   <div
@@ -1090,14 +1045,13 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                         <div className="flex justify-between items-center">
                           <span className="text-slate-700 font-sans">معرف المنشأة:</span>
                           <span className="font-bold flex items-center gap-1">
-                            {(otherCompany?.id || conn.receiver_company_id || '').slice(0, 8)}...
+                            {(otherCompany?.id || '').slice(0, 8)}...
                             <button
                               type="button"
                               onClick={() => {
-                                const idToCopy =
-                                  otherCompany?.id ||
-                                  (isIncoming ? conn.requester_company_id : conn.receiver_company_id);
-                                if (idToCopy) navigator.clipboard.writeText(idToCopy);
+                                if (otherCompany?.id) {
+                                  navigator.clipboard.writeText(otherCompany.id);
+                                }
                               }}
                               title="نسخ المعرف بالكامل"
                               className="text-slate-400 hover:text-emerald-600"
@@ -1121,40 +1075,37 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                       </div>
                     </div>
 
-                    {/* Actions if pending */}
-                    {/* Actions if pending */}
-{conn.status === 'pending' && (
-  <div className="border-t border-slate-100 pt-3 mt-4">
-    {isIncoming ? (
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => handleUpdateStatus(conn.id, 'accepted')}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition"
-        >
-          <CheckCircle className="w-3.5 h-3.5" />
-          قبول الشراكة
-        </button>
-        <button
-          type="button"
-          onClick={() => handleUpdateStatus(conn.id, 'rejected')}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition"
-        >
-          <XCircle className="w-3.5 h-3.5" />
-          رفض
-        </button>
-      </div>
-    ) : (
-      <div className="text-center py-1">
-        <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-lg">
-          ⏳ في انتظار رد الطرف الآخر...
-        </span>
-      </div>
-    )}
-  </div>
-)}
+                    {conn.status === 'pending' && (
+                      <div className="border-t border-slate-100 pt-3 mt-4">
+                        {isIncoming ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateStatus(conn.id, 'accepted')}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              قبول
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateStatus(conn.id, 'rejected')}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              رفض
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-center py-1">
+                            <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-lg">
+                              ⏳ في انتظار رد الطرف الآخر...
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                    {/* Status badge and Add to Suppliers button when accepted */}
                     {conn.status === 'accepted' && (
                       <div className="space-y-2 border-t border-slate-100 pt-3 mt-4">
                         <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
@@ -1168,7 +1119,9 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                           className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition shadow-xs disabled:opacity-50"
                         >
                           <Truck className="w-3.5 h-3.5 text-emerald-600" />
-                          {addingSupplierId === conn.id ? 'جاري الإضافة...' : 'إضافة إلى قائمة مورديني'}
+                          {addingSupplierId === conn.id
+                            ? 'جاري الإضافة...'
+                            : 'إضافة إلى قائمة مورديني'}
                         </button>
                       </div>
                     )}
@@ -1180,9 +1133,9 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
         </div>
       )}
 
-      {/* ============================================================== */}
-      {/* TAB 3: UNIFIED DRUG CATALOG */}
-      {/* ============================================================== */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* TAB 3: CATALOG */}
+      {/* ══════════════════════════════════════════════════════════════ */}
       {activeSubTab === 'catalog' && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1191,7 +1144,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                 الفهرس الدوائي الموحد (Global Drug Registry)
               </h2>
               <p className="text-xs text-slate-700">
-                قاعدة بيانات دوائية معيارية مشتركة تضم الأسماء العلمية، الباركود الدولي، والوحدات
+                قاعدة بيانات دوائية معيارية مشتركة
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -1210,12 +1163,11 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                 className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition"
               >
                 <Plus className="w-4 h-4" />
-                إضافة دواء للفهرس الموحد
+                إضافة دواء
               </button>
             </div>
           </div>
 
-          {/* Search Box */}
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
             <div className="relative">
               <Search className="w-4 h-4 absolute right-3.5 top-3 text-slate-400" />
@@ -1226,13 +1178,13 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                   setCatalogSearch(e.target.value);
                   setCatalogPage(1);
                 }}
-                placeholder="ابحث بالاسم التجاري، الاسم العلمي، الباركود، أو رمز SKU..."
+                placeholder="ابحث بالاسم التجاري، الاسم العلمي، الباركود، أو SKU..."
                 className="w-full pl-3 pr-10 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
 
-          {catalogError && <ErrorAlert message={catalogError} onRetry={loadCatalog} />}
+          {catalogError && <ErrorAlert error={catalogError} onRetry={loadCatalog} />}
 
           {catalogLoading ? (
             <div className="py-16">
@@ -1241,7 +1193,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
           ) : catalogItems.length === 0 ? (
             <EmptyState
               title="لم يتم العثور على أدوية مطابقة"
-              description="أضف أدوية جديدة إلى الفهرس الدوائي لتستفيد منها جميع المنشآت الصيدلانية"
+              description="أضف أدوية جديدة إلى الفهرس الدوائي"
               actionLabel="إضافة دواء جديد"
               onAction={() => setShowNewGlobalModal(true)}
             />
@@ -1252,11 +1204,11 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                   <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 font-black">
                     <tr>
                       <th className="py-3 px-4">اسم الدواء</th>
-                      <th className="py-3 px-4">الاسم العلمي (المادة الفعالة)</th>
+                      <th className="py-3 px-4">الاسم العلمي</th>
                       <th className="py-3 px-4">الوحدة</th>
-                      <th className="py-3 px-4">الباركود الدولي</th>
+                      <th className="py-3 px-4">الباركود</th>
                       <th className="py-3 px-4">التصنيف</th>
-                      <th className="py-3 px-4">حالة التوثيق</th>
+                      <th className="py-3 px-4">التوثيق</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1267,13 +1219,15 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                           {item.scientific_name || '—'}
                         </td>
                         <td className="py-3 px-4 text-slate-600">{item.unit}</td>
-                        <td className="py-3 px-4 font-mono text-slate-600">{item.barcode || '—'}</td>
+                        <td className="py-3 px-4 font-mono text-slate-600">
+                          {item.barcode || '—'}
+                        </td>
                         <td className="py-3 px-4 text-slate-600">{item.category || 'عام'}</td>
                         <td className="py-3 px-4">
                           {item.is_verified ? (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md">
                               <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                              معتمد رسمياً
+                              معتمد
                             </span>
                           ) : (
                             <span className="inline-flex items-center text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
@@ -1287,11 +1241,15 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                 </table>
               </div>
               <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                <span>إجمالي الأدوية المسجلة: {catalogTotal}</span>
+                <span>إجمالي الأدوية: {catalogTotal}</span>
                 {catalogTotalPages > 1 && (
                   <Pagination
-                    currentPage={catalogPage}
-                    totalPages={catalogTotalPages}
+                    pagination={{
+                      page: catalogPage,
+                      limit: 15,
+                      total: catalogTotal,
+                      pages: catalogTotalPages,
+                    }}
                     onPageChange={(p) => setCatalogPage(p)}
                   />
                 )}
@@ -1301,15 +1259,19 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
         </div>
       )}
 
-      {/* ============================================================== */}
-      {/* TAB 4: B2B COMMERCIAL FEED */}
-      {/* ============================================================== */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* TAB 4: FEED */}
+      {/* ══════════════════════════════════════════════════════════════ */}
       {activeSubTab === 'feed' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-800">العروض التجارية والتنبيهات المتاحة</h2>
-              <p className="text-xs text-slate-700">تصفح أحدث الخصومات، التوريدات المتوفرة، والطلبيات الخاصة</p>
+              <h2 className="text-sm font-bold text-slate-800">
+                العروض التجارية والتنبيهات
+              </h2>
+              <p className="text-xs text-slate-700">
+                تصفح أحدث الخصومات والتوريدات
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -1327,12 +1289,12 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                 className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition"
               >
                 <Plus className="w-4 h-4" />
-                نشر عرض جديد
+                نشر عرض
               </button>
             </div>
           </div>
 
-          {postsError && <ErrorAlert message={postsError} onRetry={loadPosts} />}
+          {postsError && <ErrorAlert error={postsError} onRetry={loadPosts} />}
 
           {postsLoading ? (
             <div className="py-16">
@@ -1340,8 +1302,8 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
             </div>
           ) : posts.length === 0 ? (
             <EmptyState
-              title="لا توجد عروض منشورة حالياً"
-              description="كن أول من ينشر عروض التوريد أو الطلبيات الدوائية لشركائك في الشبكة"
+              title="لا توجد عروض منشورة"
+              description="كن أول من ينشر عروض التوريد"
               actionLabel="نشر أول عرض"
               onAction={() => setShowNewPostModal(true)}
             />
@@ -1373,12 +1335,14 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                     </div>
 
                     <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">
-                      {post.is_public ? 'عرض عام لجميع الشركات' : 'خاص بالشركاء'}
+                      {post.is_public ? 'عرض عام' : 'خاص بالشركاء'}
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 mb-1">{post.title}</h3>
+                    <h3 className="text-sm font-bold text-slate-900 mb-1">
+                      {post.title}
+                    </h3>
                     <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
                       {post.content}
                     </p>
@@ -1405,7 +1369,9 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                       }`}
                     >
                       <Heart
-                        className={`w-4 h-4 ${post.is_liked_by_me ? 'fill-rose-600' : ''}`}
+                        className={`w-4 h-4 ${
+                          post.is_liked_by_me ? 'fill-rose-600' : ''
+                        }`}
                       />
                       <span>{post.likes_count || 0} إعجاب</span>
                     </button>
@@ -1416,7 +1382,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                       className="flex items-center gap-1.5 text-slate-600 hover:text-emerald-600 transition font-bold"
                     >
                       <MessageSquare className="w-4 h-4" />
-                      <span>{post.comments_count || 0} تعليق واستفسار</span>
+                      <span>{post.comments_count || 0} تعليق</span>
                     </button>
                   </div>
                 </div>
@@ -1425,8 +1391,12 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
               {postsTotalPages > 1 && (
                 <div className="pt-4 flex justify-center">
                   <Pagination
-                    currentPage={postsPage}
-                    totalPages={postsTotalPages}
+                    pagination={{
+                      page: postsPage,
+                      limit: 10,
+                      total: 0,
+                      pages: postsTotalPages,
+                    }}
                     onPageChange={(p) => setPostsPage(p)}
                   />
                 </div>
@@ -1436,93 +1406,91 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
         </div>
       )}
 
-      {/* ============================================================== */}
-      {/* MODAL: CREATE COMMERCIAL POST */}
-      {/* ============================================================== */}
-      {showNewPostModal && (
-        <Modal
-          isOpen={showNewPostModal}
-          onClose={() => setShowNewPostModal(false)}
-          title="نشر عرض تجاري في شبكة B2B"
-        >
-          <form onSubmit={handleCreatePost} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                عنوان العرض أو الطلبية *
-              </label>
-              <input
-                type="text"
-                required
-                value={postTitle}
-                onChange={(e) => setPostTitle(e.target.value)}
-                placeholder="مثال: خصم 20% على شحنة مضادات حيوية مستوردة"
-                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* MODAL: CREATE POST */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <Modal
+        isOpen={showNewPostModal}
+        onClose={() => setShowNewPostModal(false)}
+        title="نشر عرض تجاري في شبكة B2B"
+      >
+        <form onSubmit={handleCreatePost} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              عنوان العرض *
+            </label>
+            <input
+              type="text"
+              required
+              value={postTitle}
+              onChange={(e) => setPostTitle(e.target.value)}
+              placeholder="مثال: خصم 20% على مضادات حيوية"
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                تفاصيل العرض والشروط التجارية *
-              </label>
-              <textarea
-                required
-                rows={4}
-                value={postContent}
-                onChange={(e) => setPostContent(e.target.value)}
-                placeholder="اذكر الأصناف المتوفرة، شروط التوريد، والكميات..."
-                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              التفاصيل *
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={postContent}
+              onChange={(e) => setPostContent(e.target.value)}
+              placeholder="اذكر الأصناف والشروط..."
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                رابط صورة أو مستند العرض (اختياري)
-              </label>
-              <input
-                type="url"
-                value={postMediaUrl}
-                onChange={(e) => setPostMediaUrl(e.target.value)}
-                placeholder="https://example.com/offer.jpg"
-                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              رابط صورة (اختياري)
+            </label>
+            <input
+              type="url"
+              value={postMediaUrl}
+              onChange={(e) => setPostMediaUrl(e.target.value)}
+              placeholder="https://..."
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="is_public_check"
-                checked={postIsPublic}
-                onChange={(e) => setPostIsPublic(e.target.checked)}
-                className="w-4 h-4 text-emerald-600 rounded-md border-slate-300"
-              />
-              <label htmlFor="is_public_check" className="text-xs font-bold text-slate-700">
-                منشور عام لجميع الشركات في السوق الدوائي
-              </label>
-            </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="is_public_check"
+              checked={postIsPublic}
+              onChange={(e) => setPostIsPublic(e.target.checked)}
+              className="w-4 h-4 text-emerald-600 rounded-md border-slate-300"
+            />
+            <label htmlFor="is_public_check" className="text-xs font-bold text-slate-700">
+              منشور عام لجميع الشركات
+            </label>
+          </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowNewPostModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
-              >
-                إلغاء
-              </button>
-              <button
-                type="submit"
-                disabled={savingPost}
-                className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50"
-              >
-                {savingPost ? 'جاري النشر...' : 'نشر العرض'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setShowNewPostModal(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={savingPost}
+              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50"
+            >
+              {savingPost ? 'جاري النشر...' : 'نشر العرض'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
-      {/* ============================================================== */}
+      {/* ══════════════════════════════════════════════════════════════ */}
       {/* MODAL: COMMENTS */}
-      {/* ============================================================== */}
+      {/* ══════════════════════════════════════════════════════════════ */}
       {activePostForComments && (
         <Modal
           isOpen={!!activePostForComments}
@@ -1537,7 +1505,7 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
                 </div>
               ) : comments.length === 0 ? (
                 <p className="text-xs text-slate-600 text-center py-6">
-                  لا توجد تعليقات حتى الآن. كن أول من يعلق!
+                  لا توجد تعليقات حتى الآن
                 </p>
               ) : (
                 comments.map((comment) => (
@@ -1564,13 +1532,16 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
               )}
             </div>
 
-            <form onSubmit={handleAddComment} className="flex gap-2 pt-3 border-t border-slate-100">
+            <form
+              onSubmit={handleAddComment}
+              className="flex gap-2 pt-3 border-t border-slate-100"
+            >
               <input
                 type="text"
                 required
                 value={newCommentText}
                 onChange={(e) => setNewCommentText(e.target.value)}
-                placeholder="اكتب استفسارك أو تعليقك التجاري..."
+                placeholder="اكتب تعليقك..."
                 className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
               <button
@@ -1586,301 +1557,342 @@ export const B2BMarketplacePage: React.FC<B2BMarketplacePageProps> = ({ onNaviga
         </Modal>
       )}
 
-      {/* ============================================================== */}
-      {/* MODAL: ADD TO GLOBAL CATALOG */}
-      {/* ============================================================== */}
-      {showNewGlobalModal && (
-        <Modal
-          isOpen={showNewGlobalModal}
-          onClose={() => setShowNewGlobalModal(false)}
-          title="إضافة دواء جديد إلى الفهرس الدوائي الموحد"
-        >
-          <form onSubmit={handleCreateGlobal} className="space-y-4">
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* MODAL: CREATE GLOBAL PRODUCT */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <Modal
+        isOpen={showNewGlobalModal}
+        onClose={() => setShowNewGlobalModal(false)}
+        title="إضافة دواء جديد إلى الفهرس الموحد"
+      >
+        <form onSubmit={handleCreateGlobal} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              الاسم التجاري *
+            </label>
+            <input
+              type="text"
+              required
+              value={newGlobalName}
+              onChange={(e) => setNewGlobalName(e.target.value)}
+              placeholder="مثال: Panadol Extra"
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                الاسم التجاري للدواء *
+                الاسم العلمي
+              </label>
+              <input
+                type="text"
+                value={newGlobalScientific}
+                onChange={(e) => setNewGlobalScientific(e.target.value)}
+                placeholder="Paracetamol"
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                الوحدة *
               </label>
               <input
                 type="text"
                 required
-                value={newGlobalName}
-                onChange={(e) => setNewGlobalName(e.target.value)}
-                placeholder="مثال: Panadol Extra 500mg"
+                value={newGlobalUnit}
+                onChange={(e) => setNewGlobalUnit(e.target.value)}
+                placeholder="علبة / شريط"
                 className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  الاسم العلمي (المادة الفعالة)
-                </label>
-                <input
-                  type="text"
-                  value={newGlobalScientific}
-                  onChange={(e) => setNewGlobalScientific(e.target.value)}
-                  placeholder="Paracetamol + Caffeine"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              نوع المنتج * (إلزامي)
+            </label>
+            <select
+              required
+              value={newGlobalProductType}
+              onChange={(e) =>
+                setNewGlobalProductType(
+                  e.target.value as
+                    | 'drug'
+                    | 'supplement'
+                    | 'cosmetic'
+                    | 'food'
+                    | 'device'
+                    | 'herbal'
+                    | 'veterinary'
+                    | 'other'
+                )
+              }
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="drug">دواء</option>
+              <option value="supplement">مكمل غذائي</option>
+              <option value="cosmetic">مستحضر تجميل</option>
+              <option value="food">غذاء</option>
+              <option value="device">جهاز طبي</option>
+              <option value="herbal">عشبي</option>
+              <option value="veterinary">بيطري</option>
+              <option value="other">أخرى</option>
+            </select>
+          </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">الوحدة الأساسية *</label>
-                <input
-                  type="text"
-                  required
-                  value={newGlobalUnit}
-                  onChange={(e) => setNewGlobalUnit(e.target.value)}
-                  placeholder="علبة / شريط / قارورة"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  الباركود الدولي (Barcode)
-                </label>
-                <input
-                  type="text"
-                  value={newGlobalBarcode}
-                  onChange={(e) => setNewGlobalBarcode(e.target.value)}
-                  placeholder="628100123456"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">رمز SKU</label>
-                <input
-                  type="text"
-                  value={newGlobalSku}
-                  onChange={(e) => setNewGlobalSku(e.target.value)}
-                  placeholder="MED-PAN-001"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">التصنيف الدوائي</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                الباركود
+              </label>
               <input
                 type="text"
-                value={newGlobalCategory}
-                onChange={(e) => setNewGlobalCategory(e.target.value)}
-                placeholder="مسكنات / مضادات حيوية / أدوية قلب"
+                value={newGlobalBarcode}
+                onChange={(e) => setNewGlobalBarcode(e.target.value)}
+                placeholder="628100123456"
                 className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
             </div>
-
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowNewGlobalModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
-              >
-                إلغاء
-              </button>
-              <button
-                type="submit"
-                disabled={savingGlobal}
-                className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50"
-              >
-                {savingGlobal ? 'جاري الحفظ...' : 'إضافة للفهرس الموحد'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* ============================================================== */}
-      {/* MODAL: MANUAL REQUEST CONNECTION (FALLBACK FOR CUSTOM UUID) */}
-      {/* ============================================================== */}
-      {showRequestModal && (
-        <Modal
-          isOpen={showRequestModal}
-          onClose={() => setShowRequestModal(false)}
-          title="إرسال طلب ربط منشأة صيدلانية بالمعرف"
-        >
-          <form onSubmit={handleSendConnection} className="space-y-4">
-            <p className="text-xs text-slate-600 leading-relaxed">
-              إذا كان لديك المعرف الفريد (Company UUID) لمنشأة غير ظاهرة في الدليل، يمكنك إدخاله هنا لربط نظامك بها مباشرة.
-            </p>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                معرف المنشأة المستهدفة (Company UUID) *
+                رمز SKU
+              </label>
+              <input
+                type="text"
+                value={newGlobalSku}
+                onChange={(e) => setNewGlobalSku(e.target.value)}
+                placeholder="MED-PAN-001"
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              التصنيف
+            </label>
+            <input
+              type="text"
+              value={newGlobalCategory}
+              onChange={(e) => setNewGlobalCategory(e.target.value)}
+              placeholder="مسكنات / مضادات حيوية"
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setShowNewGlobalModal(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={savingGlobal}
+              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50"
+            >
+              {savingGlobal ? 'جاري الحفظ...' : 'إضافة للفهرس'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* MODAL: MANUAL REQUEST CONNECTION */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <Modal
+        isOpen={showRequestModal}
+        onClose={() => setShowRequestModal(false)}
+        title="إرسال طلب ربط بالمعرف"
+      >
+        <form onSubmit={handleSendConnection} className="space-y-4">
+          <p className="text-xs text-slate-600 leading-relaxed">
+            إذا كان لديك المعرف الفريد (Company UUID) لمنشأة غير ظاهرة في الدليل، أدخله هنا.
+          </p>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              معرف المنشأة المستهدفة (UUID) *
+            </label>
+            <input
+              type="text"
+              required
+              value={targetCompanyId}
+              onChange={(e) => setTargetCompanyId(e.target.value)}
+              placeholder="550e8400-e29b-41d4-a716-446655440000"
+              className="w-full px-3 py-2 text-xs font-mono border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setShowRequestModal(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={sendingRequest}
+              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50"
+            >
+              {sendingRequest ? 'جاري الإرسال...' : 'إرسال طلب الربط'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* MODAL: REGISTER NEW COMPANY */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <Modal
+        isOpen={showRegisterCompanyModal}
+        onClose={() => setShowRegisterCompanyModal(false)}
+        title="تسجيل شركة / منشأة دوائية جديدة"
+        maxWidth="2xl"
+      >
+        <form onSubmit={handleRegisterCompanySubmit} className="space-y-4">
+          <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800">
+            يتم حفظ المنشأة مباشرة في قاعدة بيانات النظام مع توليد معرف فريد (UUID) رسمي.
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                اسم الشركة *
               </label>
               <input
                 type="text"
                 required
-                value={targetCompanyId}
-                onChange={(e) => setTargetCompanyId(e.target.value)}
-                placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
-                className="w-full px-3 py-2 text-xs font-mono border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowRequestModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
-              >
-                إلغاء
-              </button>
-              <button
-                type="submit"
-                disabled={sendingRequest}
-                className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50"
-              >
-                {sendingRequest ? 'جاري الإرسال...' : 'إرسال طلب الربط'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* ============================================================== */}
-      {/* MODAL: REGISTER NEW REAL COMPANY IN DATABASE */}
-      {/* ============================================================== */}
-      {showRegisterCompanyModal && (
-        <Modal
-          isOpen={showRegisterCompanyModal}
-          onClose={() => setShowRegisterCompanyModal(false)}
-          title="تسجيل شركة / منشأة دوائية جديدة في قاعدة البيانات"
-          maxWidth="2xl"
-        >
-          <form onSubmit={handleRegisterCompanySubmit} className="space-y-4">
-            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800">
-              يتم حفظ هذه المنشأة مباشرة في جدول قاعدة بيانات النظام (سجلات الموردين والشركاء) مع توليد معرف فريد (UUID) رسمي وتوثيقها في شبكة B2B.
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  اسم الشركة / المنشأة *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newCompanyName}
-                  onChange={(e) => setNewCompanyName(e.target.value)}
-                  placeholder="مثال: شركة المتحدون للأدوية"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  نوع النشاط والكيان *
-                </label>
-                <select
-                  required
-                  value={newCompanyType}
-                  onChange={(e) => setNewCompanyType(e.target.value as any)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="warehouse">مستودع أدوية جملة</option>
-                  <option value="manufacturer">مصنع ومورد رئيسي</option>
-                  <option value="distributor">وكيل تجاري وموزع معتمد</option>
-                  <option value="pharmacy">صيدلية / منشأة طبية</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  رقم الهاتف للتواصل *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={newCompanyPhone}
-                  onChange={(e) => setNewCompanyPhone(e.target.value)}
-                  placeholder="+967 1 234567"
-                  dir="ltr"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-right"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  البريد الإلكتروني
-                </label>
-                <input
-                  type="email"
-                  value={newCompanyEmail}
-                  onChange={(e) => setNewCompanyEmail(e.target.value)}
-                  placeholder="info@company.ye"
-                  dir="ltr"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-right"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  الرقم الضريبي / السجل التجاري
-                </label>
-                <input
-                  type="text"
-                  value={newCompanyTax}
-                  onChange={(e) => setNewCompanyTax(e.target.value)}
-                  placeholder="TX-YE-XXXXX"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  المدينة / المحافظة
-                </label>
-                <input
-                  type="text"
-                  value={newCompanyCity}
-                  onChange={(e) => setNewCompanyCity(e.target.value)}
-                  placeholder="صنعاء / عدن / تعز / حضرموت"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                العنوان التفصيلي
-              </label>
-              <input
-                type="text"
-                value={newCompanyAddress}
-                onChange={(e) => setNewCompanyAddress(e.target.value)}
-                placeholder="الشارع، الحي، جوار معلم مميز"
+                value={newCompanyName}
+                onChange={(e) => setNewCompanyName(e.target.value)}
+                placeholder="شركة المتحدون للأدوية"
                 className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowRegisterCompanyModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                نوع النشاط *
+              </label>
+              <select
+                required
+                value={newCompanyType}
+                onChange={(e) =>
+                  setNewCompanyType(
+                    e.target.value as
+                      | 'warehouse'
+                      | 'manufacturer'
+                      | 'distributor'
+                      | 'pharmacy'
+                  )
+                }
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
               >
-                إلغاء
-              </button>
-              <button
-                type="submit"
-                disabled={registeringCompany}
-                className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50"
-              >
-                {registeringCompany ? 'جاري الحفظ في قاعدة البيانات...' : 'حفظ وتسجيل في قاعدة البيانات'}
-              </button>
+                <option value="warehouse">مستودع أدوية</option>
+                <option value="manufacturer">مصنع</option>
+                <option value="distributor">موزع معتمد</option>
+                <option value="pharmacy">صيدلية</option>
+              </select>
             </div>
-          </form>
-        </Modal>
-      )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                رقم الهاتف *
+              </label>
+              <input
+                type="tel"
+                required
+                value={newCompanyPhone}
+                onChange={(e) => setNewCompanyPhone(e.target.value)}
+                placeholder="+967 1 234567"
+                dir="ltr"
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-right"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                البريد الإلكتروني
+              </label>
+              <input
+                type="email"
+                value={newCompanyEmail}
+                onChange={(e) => setNewCompanyEmail(e.target.value)}
+                placeholder="info@company.ye"
+                dir="ltr"
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-right"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                الرقم الضريبي
+              </label>
+              <input
+                type="text"
+                value={newCompanyTax}
+                onChange={(e) => setNewCompanyTax(e.target.value)}
+                placeholder="TX-YE-XXXXX"
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                المدينة
+              </label>
+              <input
+                type="text"
+                value={newCompanyCity}
+                onChange={(e) => setNewCompanyCity(e.target.value)}
+                placeholder="صنعاء / عدن / تعز"
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              العنوان التفصيلي
+            </label>
+            <input
+              type="text"
+              value={newCompanyAddress}
+              onChange={(e) => setNewCompanyAddress(e.target.value)}
+              placeholder="الشارع، الحي..."
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setShowRegisterCompanyModal(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={registeringCompany}
+              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs disabled:opacity-50"
+            >
+              {registeringCompany ? 'جاري الحفظ...' : 'حفظ وتسجيل'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

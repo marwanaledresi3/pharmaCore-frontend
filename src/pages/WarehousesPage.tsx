@@ -53,25 +53,36 @@ export const WarehousesPage: React.FC = () => {
 
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+const loadData = async () => {
+  setIsLoading(true);
+  setError(null);
+  try {
+    const [whRes, batchRes, prodRes] = await Promise.all([
+      warehousesApi.list(),
+      warehousesApi.listBatches({ expiring_soon: expiringOnly || undefined }),
+      productsApi.list({ limit: 100 }),
+    ]);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [whRes, batchRes, prodRes] = await Promise.all([
-        warehousesApi.list(),
-        warehousesApi.listBatches({ expiring_soon: expiringOnly || undefined }),
-        productsApi.list({ limit: 100 }),
-      ]);
-      setWarehouses(whRes.items);
-      setBatches(batchRes.items);
-      setProducts(prodRes.items);
-    } catch (err: any) {
-      setError(err.message || 'فشل تحميل بيانات المستودعات والمخزون');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // ✅ استخدم whRes
+    const list = Array.isArray(whRes) ? whRes : [];
+    setWarehouses(list);
+
+    // ✅ تعامل مع batchRes
+    setBatches(Array.isArray(batchRes) ? batchRes : batchRes?.items || []);
+
+    // ✅ تعامل مع prodRes
+    setProducts(Array.isArray(prodRes) ? prodRes : prodRes?.items || []);
+
+  } catch (err: any) {
+    setError(err.message || 'فشل تحميل بيانات المستودعات والمخزون');
+    // ✅ امسح البيانات عند الخطأ
+    setWarehouses([]);
+    setBatches([]);
+    setProducts([]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   useEffect(() => {
     loadData();

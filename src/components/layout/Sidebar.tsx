@@ -5,6 +5,9 @@ import {
   DollarSign, BarChart3, Network, ShieldCheck, Settings, X,
   Receipt,
   Building2,
+  ArrowLeftRight,
+  ClipboardCheck,
+  PackageCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ordersApi } from '../../api/ordersApi';
@@ -37,7 +40,7 @@ const { subscribe } = useWebSocket();
   // helper: إعادة جلب العدد
 const loadCount = async () => {
   try {
-    const res = await ordersApi.getIncomingPurchaseOrders({ include_resolved: false });
+    const res = await ordersApi.getIncomingPurchaseOrders({  });
     setIncomingCount(res.items.length);
   } catch {
     /* silent */
@@ -95,7 +98,35 @@ useEffect(() => {
     { id: 'journal-entries', label: 'القيود اليومية', icon: <Scale className="w-5 h-5" />, permission: 'journal_entries.view', group: 'finance' },
     { id: 'currencies', label: 'العملات والصرف', icon: <DollarSign className="w-5 h-5" />, group: 'finance' },
     { id: 'reports', label: 'التقارير والميزانيات', icon: <BarChart3 className="w-5 h-5" />, permission: 'reports.view_financial', group: 'finance' },
-
+    { id: 'documents', label: 'المستندات', icon: <FileText className="w-5 h-5" />, permission: 'documents.view', group: 'operations' },
+    {
+  id: 'stock-transfers',
+  label: 'أذون التحويل',
+  icon: <ArrowLeftRight className="w-5 h-5" />,
+  permission: 'stock_transfers.view',
+  group: 'operations',
+},
+{
+  id: 'stock-adjustments',
+  label: 'تسويات الجرد',
+  icon: <ClipboardCheck className="w-5 h-5" />,
+  permission: 'stock_adjustments.view',
+  group: 'operations',
+},
+{
+  id: 'delivery-notes',
+  label: 'مذكرات التسليم',
+  icon: <Truck className="w-5 h-5" />,
+  permission: 'delivery_notes.view',
+  group: 'operations',
+},
+{
+  id: 'goods-receipts',
+  label: 'أذون الاستلام',
+  icon: <PackageCheck className="w-5 h-5" />,
+  permission: 'goods_receipts.view',
+  group: 'operations',
+},
     // B2B
     { id: 'b2b', label: 'سوق B2B والشبكة', icon: <Network className="w-5 h-5" />, group: 'b2b' },
 
