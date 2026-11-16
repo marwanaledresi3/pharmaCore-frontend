@@ -8,6 +8,8 @@ import {
   ArrowLeftRight,
   ClipboardCheck,
   PackageCheck,
+  Wallet,
+  Landmark,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ordersApi } from '../../api/ordersApi';
@@ -92,6 +94,8 @@ useEffect(() => {
 
     // Finance
     { id: 'payments', label: 'سندات القبض والصرف', icon: <CreditCard className="w-5 h-5" />, permission: 'payments.view', group: 'finance' },
+    {id: 'cash-registers', label: 'الصناديق والتحويلات', icon: <Wallet className="w-5 h-5" />, permission: 'cash_registers.view', group: 'finance' },
+{ id: 'cash-statement', label: 'كشف حساب الصندوق', icon: <Landmark className="w-5 h-5" />, permission: 'cash_registers.view', group: 'finance' },
     { id: 'expenses',  label: 'المصروفات التشغيلية',icon: <Receipt className="w-5 h-5" />,  permission: 'expenses.view',group: 'finance',},
     { id: 'returns', label: 'المرتجعات', icon: <RotateCcw className="w-5 h-5" />, permission: 'invoices.view', group: 'finance' },
     { id: 'accounts', label: 'شجرة الحسابات', icon: <BookOpen className="w-5 h-5" />, permission: 'accounts.view', group: 'finance' },

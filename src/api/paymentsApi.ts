@@ -13,6 +13,7 @@ export interface CreatePaymentPayload {
   external_reference?: string;
   description?: string;
   cash_account_id?: string;
+  cash_register_id?: string | null;
 }
 
 export const paymentsApi = {
@@ -43,6 +44,7 @@ export const paymentsApi = {
     if (payload.external_reference) body.external_reference = payload.external_reference;
     if (payload.description) body.description = payload.description;
     if (payload.cash_account_id) body.cash_account_id = payload.cash_account_id;
+    if (payload.cash_register_id) body.cash_register_id = payload.cash_register_id;
 
     return request<Payment>('/payments', {
       method: 'POST',

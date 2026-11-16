@@ -75,6 +75,7 @@ export interface CreatePurchaseOrderItemPayload {
 export interface CreatePurchaseOrderPayload {
   supplier_id: string;
   currency_id: string;
+  cash_register_id?: string | null;
   order_date?: string;
   exchange_rate?: number;
 
@@ -213,6 +214,7 @@ export interface CreateSalesOrderItemPayload {
 export interface CreateSalesOrderPayload {
   customer_id: string;
   currency_id: string;
+  cash_register_id?: string | null;
   order_date?: string;
   exchange_rate?: number;
   payment_type?: PaymentType;

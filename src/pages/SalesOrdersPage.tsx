@@ -33,7 +33,7 @@ import { Pagination } from '../components/common/Pagination';
 import { PrintPreviewModal, exportToCsv } from '../components/common/PrintPreviewModal';
 import { useAuth } from '../context/AuthContext';
 import { pdfApi } from '../api/pdfApi1';
-
+import { CashRegisterSelect } from '../components/common/CashRegisterSelect';
 // ═══════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════
@@ -69,7 +69,7 @@ function resolveUnitFactor(
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SalesOrdersPage: React.FC = () => {
-  const { company } = useAuth();
+  const { company, user } = useAuth();
   const baseCurrency = company?.currency_code || 'YER';
 
   const [orders, setOrders] = useState<SalesOrder[]>([]);
@@ -116,6 +116,8 @@ export const SalesOrdersPage: React.FC = () => {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceDueDate, setInvoiceDueDate] = useState('');
 
+
+  const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
   // ══════════════════════════════════════════════════════════════════════
   // Load Data
   // ══════════════════════════════════════════════════════════════════════
@@ -189,6 +191,7 @@ export const SalesOrdersPage: React.FC = () => {
     setFormError(null);
     setValidationDetails(undefined);
     setIsCreateOpen(true);
+    setCashRegisterId(null);
   };
 
   const addItemRow = () => {
@@ -326,6 +329,7 @@ export const SalesOrdersPage: React.FC = () => {
       await ordersApi.createSalesOrder({
         customer_id: selectedCustomerId,
         currency_id: selectedCurrencyId,
+        cash_register_id: paymentType !== 'credit' && paymentMethod === 'cash' ? cashRegisterId : null,
         order_date: orderDate,
 
         // 🆕 الحقول الجديدة
@@ -661,6 +665,8 @@ export const SalesOrdersPage: React.FC = () => {
                 </select>
               </div>
 
+             
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   طريقة الدفع
@@ -675,6 +681,16 @@ export const SalesOrdersPage: React.FC = () => {
                   <option value="cheque">شيك (Cheque)</option>
                 </select>
               </div>
+
+               {/* يظهر عند اختيار الدفع بالصندوق */}
+              {paymentType !== 'credit' && paymentMethod === 'cash' && (
+                <CashRegisterSelect
+                  value={cashRegisterId}
+                  onChange={(id) => setCashRegisterId(id)}
+                  branchId={user?.branch_id || null}
+                  required
+                />
+              )}
 
               {paymentType !== 'credit' && (
                 <div>

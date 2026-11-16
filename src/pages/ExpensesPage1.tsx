@@ -25,6 +25,7 @@ import { PrintPreviewModal, exportToCsv } from '../components/common/PrintPrevie
 import { PayExpenseModal } from './PayExpenseModal';
 import { useAuth } from '../context/AuthContext';
 import { pdfApi } from '../api/pdfApi1';
+import { CashRegisterSelect } from '../components/common/CashRegisterSelect';
 
 /* ============================================================
  * Constants
@@ -55,7 +56,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
  * ============================================================ */
 
 export const ExpensesPage: React.FC = () => {
-  const { company } = useAuth();
+  const { company, user } = useAuth();
   const baseCurrency = company?.currency_code || 'YER';
 
   /* ---------- Data ---------- */
@@ -98,6 +99,8 @@ export const ExpensesPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   const [payExpenseTarget, setPayExpenseTarget] = useState<Expense | null>(null);
+
+  const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
 
   /* ============================================================
    * Load
@@ -173,6 +176,7 @@ export const ExpensesPage: React.FC = () => {
     setExternalReference('');
     setFormError(null);
     setIsCreateOpen(true);
+    setCashRegisterId(null);
 
     const defaultCode = EXPENSE_CATEGORIES.find((c) => c.value === 'rent')?.defaultCode;
     const matched = expenseAccounts.find((a) => a.code === defaultCode);
@@ -226,6 +230,8 @@ export const ExpensesPage: React.FC = () => {
         currency_id: currencyId,
         payment_type: paymentType,
         payment_method: paymentType !== 'credit' ? paymentMethod : undefined,
+        cash_register_id:
+    paymentType !== 'credit' && paymentMethod === 'cash' ? cashRegisterId : null,
         paid_amount: paymentType === 'partial' ? Number(paidAmount) : undefined,
         due_date: paymentType !== 'cash' ? dueDate || undefined : undefined,
         external_reference: externalReference.trim() || undefined,
@@ -627,6 +633,17 @@ export const ExpensesPage: React.FC = () => {
                 <option value="cheque">شيك</option>
               </select>
             </div>
+          )}
+
+          {/* الصندوق النقدي — يظهر فقط عند السداد نقداً */}
+          {paymentType !== 'credit' && paymentMethod === 'cash' && (
+            <CashRegisterSelect
+              label="الصندوق المصروف منه *"
+              value={cashRegisterId}
+              onChange={(id) => setCashRegisterId(id)}
+              branchId={(user as any)?.branch_id || null}
+              required
+            />
           )}
 
           {/* المبلغ المدفوع (للجزئي) */}

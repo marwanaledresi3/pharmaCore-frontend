@@ -1,7 +1,8 @@
 // pages/purchaseOrders/components/PaymentFields.tsx
 import React from 'react';
 import { PaymentMethod, PaymentType } from '../../../api/ordersApi';
-
+import { CashRegisterSelect } from '../../../components/common/CashRegisterSelect';
+import { useAuth } from '../../../context/AuthContext';
 interface Props {
   paymentType: PaymentType;
   paymentMethod: PaymentMethod;
@@ -9,11 +10,13 @@ interface Props {
   paidAmount: number;
   grandTotal: number;
   baseCurrency: string;
+  cashRegisterId?: string | null;
   onChange: (patch: {
     paymentType?: PaymentType;
     paymentMethod?: PaymentMethod;
     paymentTermsDays?: number;
     paidAmount?: number;
+    cashRegisterId?: string | null;
   }) => void;
 }
 
@@ -24,8 +27,10 @@ export const PaymentFields: React.FC<Props> = ({
   paidAmount,
   grandTotal,
   baseCurrency,
+  cashRegisterId,
   onChange,
 }) => {
+  const { user } = useAuth();
   return (
     <div className="p-4 rounded-xl bg-blue-50/40 border border-blue-200">
       <h4 className="text-xs font-black text-blue-950 mb-3">💳 تفاصيل الدفع</h4>
@@ -59,6 +64,16 @@ export const PaymentFields: React.FC<Props> = ({
             <option value="cheque">شيك (Cheque)</option>
           </select>
         </div>
+
+        {/* ✅ إظهار اختيار الصندوق إذا كان الدفع نقدي عبر الصندوق */}
+        {paymentType !== 'credit' && paymentMethod === 'cash' && (
+          <CashRegisterSelect
+            value={cashRegisterId}
+            onChange={(id) => onChange({ cashRegisterId: id })}
+            branchId={(user as any)?.branch_id || null}
+            required
+          />
+        )}
 
         {paymentType !== 'cash' && (
           <div>

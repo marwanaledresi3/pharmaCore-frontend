@@ -15,6 +15,7 @@ export interface CreateExpensePayload {
   due_date?: string;
   supplier_id?: string;
   external_reference?: string;
+  cash_register_id?: string | null;
 }
 
 export const expensesApi = {
@@ -47,7 +48,8 @@ export const expensesApi = {
 
  pay: async (
   id: string,
-  data: { amount?: number; method?: 'cash' | 'bank' | 'cheque'; payment_date?: string }
+  data: { amount?: number; method?: 'cash' | 'bank' | 'cheque'; payment_date?: string;
+      cash_register_id?: string | null; }
 ) => {
   return request<{
     id: string;

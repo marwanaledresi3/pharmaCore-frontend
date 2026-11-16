@@ -115,6 +115,8 @@ export const PurchaseOrdersPage: React.FC = () => {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceDueDate, setInvoiceDueDate] = useState('');
 
+  const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
+
 
     const currentSupplier = useMemo(
       () => suppliers.find((s) => s.id === selectedSupplierId),
@@ -255,6 +257,7 @@ export const PurchaseOrdersPage: React.FC = () => {
     setFormError(null);
     setValidationDetails(undefined);
     setIsCreateOpen(true);
+    setCashRegisterId(null);
   };
 
   const addItemRow = () => {
@@ -377,6 +380,7 @@ export const PurchaseOrdersPage: React.FC = () => {
       await ordersApi.createPurchaseOrder({
         supplier_id: selectedSupplierId,
         currency_id: selectedCurrencyId,
+        cash_register_id: paymentType !== 'credit' && paymentMethod === 'cash' ? cashRegisterId : null,
         order_date: orderDate,
 
         // ✅ Payment & Discount
@@ -671,12 +675,17 @@ export const PurchaseOrdersPage: React.FC = () => {
           onChangeSupplier={setSelectedSupplierId}
           onChangeCurrency={setSelectedCurrencyId}
           onChangeOrderDate={setOrderDate}
+
+          // 👈 ضع هذا الكود هنا تماماً داخل onChangePayment:
+          cashRegisterId={cashRegisterId}
           onChangePayment={(patch) => {
             if (patch.paymentType !== undefined) setPaymentType(patch.paymentType);
             if (patch.paymentMethod !== undefined) setPaymentMethod(patch.paymentMethod);
             if (patch.paymentTermsDays !== undefined) setPaymentTermsDays(patch.paymentTermsDays);
             if (patch.paidAmount !== undefined) setPaidAmount(patch.paidAmount);
+            if (patch.cashRegisterId !== undefined) setCashRegisterId(patch.cashRegisterId); // 👈 استقباله هنا وتحديث الـ State
           }}
+          
           onChangeSupplierInvoice={(patch) => {
             if (patch.invoiceNumber !== undefined) setSupplierInvoiceNumber(patch.invoiceNumber);
             if (patch.invoiceDate !== undefined) setSupplierInvoiceDate(patch.invoiceDate);

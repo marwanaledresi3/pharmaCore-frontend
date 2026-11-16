@@ -17,6 +17,8 @@ export interface User {
   name: string;
   email: string;
   user_type: string;
+  branch_id?: string | null; 
+  branch_name?: string | null;
   is_active: boolean;
   last_login?: string | null;
   created_at?: string;

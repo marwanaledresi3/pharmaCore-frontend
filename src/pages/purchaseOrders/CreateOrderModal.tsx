@@ -30,6 +30,7 @@ interface Props {
   paidAmount: number;
   supplierInvoiceNumber: string;
   supplierInvoiceDate: string;
+  cashRegisterId?: string | null;
 
   // ✅ هامش الربح الافتراضي
   defaultMarginRate: number;
@@ -49,6 +50,7 @@ interface Props {
     paymentMethod?: PaymentMethod;
     paymentTermsDays?: number;
     paidAmount?: number;
+    cashRegisterId?: string | null;
   }) => void;
   onChangeSupplierInvoice: (patch: {
     invoiceNumber?: string;
@@ -81,6 +83,7 @@ export const CreateOrderModal: React.FC<Props> = (props) => {
     paymentMethod,
     paymentTermsDays,
     paidAmount,
+    cashRegisterId,
     supplierInvoiceNumber,
     supplierInvoiceDate,
     defaultMarginRate,
@@ -203,6 +206,7 @@ export const CreateOrderModal: React.FC<Props> = (props) => {
           paidAmount={paidAmount}
           grandTotal={grandTotal}
           baseCurrency={baseCurrency}
+          cashRegisterId={cashRegisterId}
           onChange={onChangePayment}
         />
 

@@ -139,6 +139,10 @@ function buildPurchaseOrderBody(
     body.supplier_invoice_date = raw.supplier_invoice_date.trim().slice(0, 10);
   }
 
+  if (raw.cash_register_id) {
+    body.cash_register_id = raw.cash_register_id;
+  }
+
   return body;
 }
 

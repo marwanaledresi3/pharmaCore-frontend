@@ -24,6 +24,7 @@ import { EmptyState } from '../components/common/EmptyState';
 import { PrintPreviewModal, exportToCsv } from '../components/common/PrintPreviewModal';
 import { useAuth } from '../context/AuthContext';
 import { pdfApi } from '../api/pdfApi1';
+import { CashRegisterSelect } from '../components/common/CashRegisterSelect';
 
 type TargetMode = 'invoice' | 'party';
 
@@ -31,7 +32,7 @@ type TargetMode = 'invoice' | 'party';
 const MAX_LIST_LIMIT = 100;
 
 export const PaymentsPage: React.FC = () => {
-  const { company } = useAuth();
+  const { company, user } = useAuth();
   const baseCurrency = company?.currency_code || 'YER';
 
   /* ---------- Data ---------- */
@@ -63,6 +64,8 @@ export const PaymentsPage: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
 
+
+  const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
   /* ============================================================
    * Load data
    * ✅ FIX #8: limit = 100 (حد أقصى في الراوتر)
@@ -125,6 +128,7 @@ export const PaymentsPage: React.FC = () => {
     setPaymentDate(new Date().toISOString().slice(0, 10));
     setFormError(null);
     setIsCreateOpen(true);
+    setCashRegisterId(null);
 
     // اختيار افتراضي: أول فاتورة
     const targetInvoices = eligibleInvoices(type);
@@ -214,6 +218,7 @@ export const PaymentsPage: React.FC = () => {
         payment_date: paymentDate,
         description: description.trim(),
         external_reference: externalReference.trim() || undefined,
+        cash_register_id: method === 'cash' ? cashRegisterId : null,
       };
 
       if (targetMode === 'invoice') {
@@ -678,6 +683,17 @@ export const PaymentsPage: React.FC = () => {
               <option value="cheque">شيك مصرفي</option>
             </select>
           </div>
+
+          {/* الصندوق النقدي — يظهر فقط عند السداد نقداً */}
+          {method === 'cash' && (
+            <CashRegisterSelect
+              label={paymentType === 'receive' ? 'الصندوق المستلم (الإيداع في) *' : 'الصندوق المصروف منه *'}
+              value={cashRegisterId}
+              onChange={(id) => setCashRegisterId(id)}
+              branchId={(user as any)?.branch_id || null}
+              required
+            />
+          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">

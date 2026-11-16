@@ -29,6 +29,9 @@ import { StockTransfersPage } from '../../pages/StockTransfersPage';
 import { StockAdjustmentsPage } from '../../pages/StockAdjustmentsPage';
 import { DeliveryNotesPage } from '../../pages/DeliveryNotesPage';
 import { GoodsReceiptsPage } from '../../pages/GoodsReceiptsPage';
+import { CashRegistersPage } from '../../pages/CashRegistersPage';
+import { CashRegisterStatementPage } from '../../pages/CashRegisterStatementPage';
+
 
 export const AppLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -56,6 +59,10 @@ export const AppLayout: React.FC = () => {
         return <WarehousesPage />;
       case 'payments':
         return <PaymentsPage />;
+        case 'cash-registers':
+          return <CashRegistersPage />;
+        case 'cash-statement':
+          return <CashRegisterStatementPage />;
       case 'expenses':
         return <ExpensesPage />;
       case 'returns':

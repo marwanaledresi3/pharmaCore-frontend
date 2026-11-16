@@ -60,7 +60,14 @@ function buildSalesOrderItems(
  * يبني body إنشاء أمر البيع.
  */
 function buildSalesOrderBody(
-  raw: CreateSalesOrderPayload
+  raw: CreateSalesOrderPayload & {
+    payment_type?: 'cash' | 'credit' | 'partial';
+    payment_method?: string;
+    payment_terms_days?: number;
+    paid_amount?: number;
+    discount_rate?: number;
+    cash_register_id?: string | null;
+  }
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {
     customer_id: raw.customer_id,
@@ -75,6 +82,16 @@ function buildSalesOrderBody(
     body.exchange_rate = Number(raw.exchange_rate);
   }
   if (raw.warehouse_id) body.warehouse_id = raw.warehouse_id;
+
+  // حقول الدفع والخصم والصندوق
+  if (raw.payment_type) body.payment_type = raw.payment_type;
+  if (raw.payment_method) body.payment_method = raw.payment_method;
+  if (typeof raw.payment_terms_days === 'number') {
+    body.payment_terms_days = raw.payment_terms_days;
+  }
+  if (typeof raw.paid_amount === 'number') body.paid_amount = raw.paid_amount;
+  if (typeof raw.discount_rate === 'number') body.discount_rate = raw.discount_rate;
+  if (raw.cash_register_id) body.cash_register_id = raw.cash_register_id;
 
   return body;
 }
