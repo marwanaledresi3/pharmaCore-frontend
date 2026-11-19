@@ -9,7 +9,7 @@ import {
   ClipboardCheck,
   PackageCheck,
   Wallet,
-  Landmark,
+  Landmark,UserCog
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ordersApi } from '../../api/ordersApi';
@@ -130,6 +130,13 @@ useEffect(() => {
   icon: <PackageCheck className="w-5 h-5" />,
   permission: 'goods_receipts.view',
   group: 'operations',
+},
+{ 
+  id: 'hr', 
+  label: 'الموارد البشرية', 
+  icon: <UserCog className="w-5 h-5" />, 
+  permission: 'employees.view', 
+  group: 'operations' 
 },
     // B2B
     { id: 'b2b', label: 'سوق B2B والشبكة', icon: <Network className="w-5 h-5" />, group: 'b2b' },

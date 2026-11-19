@@ -31,7 +31,7 @@ import { DeliveryNotesPage } from '../../pages/DeliveryNotesPage';
 import { GoodsReceiptsPage } from '../../pages/GoodsReceiptsPage';
 import { CashRegistersPage } from '../../pages/CashRegistersPage';
 import { CashRegisterStatementPage } from '../../pages/CashRegisterStatementPage';
-
+import { HRPage } from '../../pages/hr/HRPage';
 
 export const AppLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -91,6 +91,8 @@ export const AppLayout: React.FC = () => {
         return <UsersPage />;
       case 'settings':
         return <SettingsLayout />;
+      case 'hr':
+        return <HRPage />;
       case 'branches':
         return <BranchesPage />;
       default:

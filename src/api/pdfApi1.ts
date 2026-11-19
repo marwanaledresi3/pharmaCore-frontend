@@ -18,6 +18,10 @@ const PATHS = {
   goodsReceipt: (id: string) => `/api/v1/pdf/goods-receipts/${id}`,
   stockTransfer: (id: string) => `/api/v1/pdf/stock-transfers/${id}`,
   stockAdjustment: (id: string) => `/api/v1/pdf/stock-adjustments/${id}`,
+
+   payslip: (itemId: string) => `/api/v1/pdf/payslips/${itemId}`,
+  payrollReport: (runId: string, includeDetails = false) =>
+    `/api/v1/pdf/payroll/${runId}${includeDetails ? '?includeDetails=true' : ''}`,
 };
 
 export const pdfApi = {
@@ -43,6 +47,11 @@ export const pdfApi = {
 
   previewTrialBalance: (params?: { date_from?: string; date_to?: string }) =>
     openPdf(PATHS.trialBalance(), params),
+
+   previewPayslip: (itemId: string) => openPdf(PATHS.payslip(itemId)),
+
+  previewPayrollReport: (runId: string, includeDetails = false) =>
+    openPdf(PATHS.payrollReport(runId, includeDetails)),
 
   // ==================== تحميل ====================
   downloadInvoicePdf: (id: string, number?: string) =>
@@ -102,5 +111,18 @@ export const pdfApi = {
 
   downloadStockAdjustmentPdf: (id: string, adjustmentNumber?: string) =>
     downloadPdf(PATHS.stockAdjustment(id), `stock-adjustment-${adjustmentNumber || id.slice(0, 8)}`),
+
+  downloadPayslipPdf: (itemId: string, identifier?: string) =>
+    downloadPdf(PATHS.payslip(itemId), `payslip-${identifier || itemId.slice(0, 8)}`),
+
+  downloadPayrollReportPdf: (
+    runId: string,
+    runNumber?: string,
+    includeDetails = false
+  ) =>
+    downloadPdf(
+      PATHS.payrollReport(runId, includeDetails),
+      `payroll-${runNumber || runId.slice(0, 8)}${includeDetails ? '-details' : ''}`
+    ),
 
 };

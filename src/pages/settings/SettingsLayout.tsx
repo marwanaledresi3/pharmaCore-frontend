@@ -1,8 +1,9 @@
+// pages/settings/SettingsLayout.tsx
 import React, { useState } from 'react';
 import {
   Settings, Building2, DollarSign, Ruler, FileText, Package,
   Hash, CreditCard, Bell, Printer, Globe, Users, Shield,
-  BookOpen, UserPlus, Menu, X,
+  BookOpen, UserPlus, Menu, X, UserCog,BarChart3,
 } from 'lucide-react';
 
 // الأقسام — كل قسم له id + label + icon + component
@@ -21,16 +22,26 @@ import { SecuritySection } from './sections/SecuritySection';
 import { AccountingSection } from './sections/AccountingSection';
 import { PortalSection } from './sections/PortalSection';
 
+// ⬇️ HR — جديد
+import { HRGeneralSection } from './sections/HRGeneralSection';
+import { HRLeavesSection } from './sections/HRLeavesSection';       
+import { HRNotificationsSection } from './sections/HRNotificationsSection'; // ⬅️ جديد
+import { HRAttendanceSection } from './sections/HRAttendanceSection';
+import { HRLeaveBalanceSection } from './sections/HRLeaveBalanceSection';
+import { HRPayrollSection } from './sections/HRPayrollSection';
+import { HRReportsSection } from './sections/HRReportsSection';
+
 export type SettingsSection =
   | 'company' | 'currency' | 'units' | 'invoicing' | 'inventory'
   | 'numbering' | 'payments' | 'notifications' | 'printing'
-  | 'localization' | 'partners' | 'security' | 'accounting' | 'portal';
+  | 'localization' | 'partners' | 'security' | 'accounting' | 'portal'
+  | 'hr-general' | 'hr-leaves' | 'hr-attendance' | 'hr-leave-balance' | 'hr-payroll' | 'hr-notifications' | 'hr-reports';  // ⬅️ جديد   // ⬅️ جديد
 
 interface SectionDef {
   id: SettingsSection;
   label: string;
   icon: React.ReactNode;
-  group: 'general' | 'operations' | 'system';
+  group: 'general' | 'operations' | 'hr' | 'system';   // ⬅️ أضفنا 'hr'
 }
 
 const SECTIONS: SectionDef[] = [
@@ -47,7 +58,15 @@ const SECTIONS: SectionDef[] = [
   { id: 'payments',      label: 'المدفوعات',         icon: <CreditCard className="w-4 h-4" />, group: 'operations' },
   { id: 'partners',      label: 'الشركاء',           icon: <Users className="w-4 h-4" />,      group: 'operations' },
 
-  // النظام
+  // ⬇️ HR — جديد
+  { id: 'hr-general',       label: 'الإعدادات العامة',       icon: <UserCog className="w-4 h-4" />, group: 'hr' },
+  { id: 'hr-leaves',        label: 'الإجازات',               icon: <UserCog className="w-4 h-4" />, group: 'hr' },
+  { id: 'hr-attendance',    label: 'الحضور والدوام',         icon: <UserCog className="w-4 h-4" />, group: 'hr' },
+  { id: 'hr-leave-balance', label: 'أرصدة الإجازات',         icon: <UserCog className="w-4 h-4" />, group: 'hr' },
+  { id: 'hr-payroll',       label: 'الرواتب والتأمينات',     icon: <UserCog className="w-4 h-4" />, group: 'hr' },
+  { id: 'hr-notifications', label: 'إشعارات الموارد البشرية', icon: <UserCog className="w-4 h-4" />, group: 'hr' },
+  { id: 'hr-reports',       label: 'تقارير الموارد البشرية',  icon: <BarChart3 className="w-4 h-4" />, group: 'hr' },  // ⬅️ جديد
+    // النظام
   { id: 'notifications', label: 'الإشعارات',         icon: <Bell className="w-4 h-4" />,       group: 'system' },
   { id: 'printing',      label: 'الطباعة والـ PDF',   icon: <Printer className="w-4 h-4" />,    group: 'system' },
   { id: 'security',      label: 'الأمان',            icon: <Shield className="w-4 h-4" />,     group: 'system' },
@@ -56,9 +75,10 @@ const SECTIONS: SectionDef[] = [
 ];
 
 const GROUPS = {
-  general:    { title: 'عام',          order: 1 },
-  operations: { title: 'العمليات',     order: 2 },
-  system:     { title: 'النظام',       order: 3 },
+  general:    { title: 'عام',              order: 1 },
+  operations: { title: 'العمليات',         order: 2 },
+  hr:         { title: 'الموارد البشرية',  order: 3 },   // ⬅️ جديد
+  system:     { title: 'النظام',           order: 4 },
 } as const;
 
 export const SettingsLayout: React.FC = () => {
@@ -81,6 +101,16 @@ export const SettingsLayout: React.FC = () => {
       case 'security':      return <SecuritySection />;
       case 'accounting':    return <AccountingSection />;
       case 'portal':        return <PortalSection />;
+
+      // ⬇️ HR — جديد
+     case 'hr-general':       return <HRGeneralSection />;
+     case 'hr-leaves':        return <HRLeavesSection />;           // ⬅️ جديد
+     case 'hr-attendance':    return <HRAttendanceSection />;
+     case 'hr-leave-balance': return <HRLeaveBalanceSection />;
+     case 'hr-payroll':       return <HRPayrollSection />;
+     case 'hr-notifications': return <HRNotificationsSection />;
+     case 'hr-reports':       return <HRReportsSection />;
+
       default:              return <CompanyProfileSection />;
     }
   };
@@ -120,7 +150,13 @@ export const SettingsLayout: React.FC = () => {
                   <span className={isActive ? 'text-emerald-600' : 'text-slate-400'}>
                     {item.icon}
                   </span>
-                  <span>{item.label}</span>
+                  <span className="flex-1 text-right">{item.label}</span>
+                  {/* ⬇️ شارة HR اختيارية — تظهر فقط في القسم العام */}
+                  {item.group === 'hr' && !isActive && (
+                    <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-bold">
+                      HR
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -143,7 +179,6 @@ export const SettingsLayout: React.FC = () => {
             إدارة كل إعدادات النظام من مكان واحد
           </p>
         </div>
-        {/* زر القائمة للموبايل */}
         <button
           type="button"
           onClick={() => setIsMobileNavOpen((v) => !v)}
@@ -156,12 +191,10 @@ export const SettingsLayout: React.FC = () => {
 
       {/* Layout */}
       <div className="flex gap-6">
-        {/* Sidebar — Desktop */}
         <aside className="hidden lg:block w-56 shrink-0">
           <div className="sticky top-4">{SideNav}</div>
         </aside>
 
-        {/* Sidebar — Mobile */}
         {isMobileNavOpen && (
           <div
             className="fixed inset-0 z-40 bg-black/40 lg:hidden"
@@ -176,7 +209,6 @@ export const SettingsLayout: React.FC = () => {
           </div>
         )}
 
-        {/* Content */}
         <div className="flex-1 min-w-0">{renderSection()}</div>
       </div>
     </div>
