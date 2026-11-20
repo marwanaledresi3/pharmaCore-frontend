@@ -31,7 +31,12 @@ import { DeliveryNotesPage } from '../../pages/DeliveryNotesPage';
 import { GoodsReceiptsPage } from '../../pages/GoodsReceiptsPage';
 import { CashRegistersPage } from '../../pages/CashRegistersPage';
 import { CashRegisterStatementPage } from '../../pages/CashRegisterStatementPage';
+
 import { HRPage } from '../../pages/hr/HRPage';
+
+import { FixedAssetsPage } from '../../pages/fixedAssets/FixedAssetsPage';
+
+import { CustodyAdvancesPage } from '../../pages/custody/CustodyAdvancesPage';
 
 export const AppLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -59,9 +64,9 @@ export const AppLayout: React.FC = () => {
         return <WarehousesPage />;
       case 'payments':
         return <PaymentsPage />;
-        case 'cash-registers':
+      case 'cash-registers':
           return <CashRegistersPage />;
-        case 'cash-statement':
+      case 'cash-statement':
           return <CashRegisterStatementPage />;
       case 'expenses':
         return <ExpensesPage />;
@@ -93,6 +98,10 @@ export const AppLayout: React.FC = () => {
         return <SettingsLayout />;
       case 'hr':
         return <HRPage />;
+      case 'fixed-assets':
+        return <FixedAssetsPage />;
+      case 'custody-advances':
+        return <CustodyAdvancesPage />;
       case 'branches':
         return <BranchesPage />;
       default:

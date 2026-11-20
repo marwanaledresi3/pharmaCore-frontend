@@ -102,6 +102,20 @@ useEffect(() => {
     { id: 'journal-entries', label: 'القيود اليومية', icon: <Scale className="w-5 h-5" />, permission: 'journal_entries.view', group: 'finance' },
     { id: 'currencies', label: 'العملات والصرف', icon: <DollarSign className="w-5 h-5" />, group: 'finance' },
     { id: 'reports', label: 'التقارير والميزانيات', icon: <BarChart3 className="w-5 h-5" />, permission: 'reports.view_financial', group: 'finance' },
+    {
+  id: 'fixed-assets',
+  label: 'الأصول الثابتة',
+  icon: <Landmark className="w-5 h-5" />,
+  permission: 'fixed_assets.view',
+  group: 'finance',
+},
+{
+  id: 'custody-advances',
+  label: 'العهد والسلف',
+  icon: <Wallet className="w-5 h-5" />,
+  permission: 'custody.read',
+  group: 'finance',
+},
     { id: 'documents', label: 'المستندات', icon: <FileText className="w-5 h-5" />, permission: 'documents.view', group: 'operations' },
     {
   id: 'stock-transfers',
@@ -138,6 +152,7 @@ useEffect(() => {
   permission: 'employees.view', 
   group: 'operations' 
 },
+
     // B2B
     { id: 'b2b', label: 'سوق B2B والشبكة', icon: <Network className="w-5 h-5" />, group: 'b2b' },
 

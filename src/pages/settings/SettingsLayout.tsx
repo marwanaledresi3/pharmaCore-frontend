@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import {
   Settings, Building2, DollarSign, Ruler, FileText, Package,
   Hash, CreditCard, Bell, Printer, Globe, Users, Shield,
-  BookOpen, UserPlus, Menu, X, UserCog,BarChart3,
+  BookOpen, UserPlus, Menu, X, UserCog,BarChart3,Landmark,Wallet
 } from 'lucide-react';
 
 // الأقسام — كل قسم له id + label + icon + component
@@ -31,11 +31,16 @@ import { HRLeaveBalanceSection } from './sections/HRLeaveBalanceSection';
 import { HRPayrollSection } from './sections/HRPayrollSection';
 import { HRReportsSection } from './sections/HRReportsSection';
 
+
+import { FixedAssetsSection } from './sections/FixedAssetsSection';
+
+import { CustodySettingsSection } from './sections/CustodySettingsSection';
 export type SettingsSection =
   | 'company' | 'currency' | 'units' | 'invoicing' | 'inventory'
   | 'numbering' | 'payments' | 'notifications' | 'printing'
   | 'localization' | 'partners' | 'security' | 'accounting' | 'portal'
-  | 'hr-general' | 'hr-leaves' | 'hr-attendance' | 'hr-leave-balance' | 'hr-payroll' | 'hr-notifications' | 'hr-reports';  // ⬅️ جديد   // ⬅️ جديد
+  | 'hr-general' | 'hr-leaves' | 'hr-attendance' | 'hr-leave-balance' | 'hr-payroll' | 'hr-notifications' | 'hr-reports'
+  | 'fixed-assets' | 'custody';  
 
 interface SectionDef {
   id: SettingsSection;
@@ -57,6 +62,7 @@ const SECTIONS: SectionDef[] = [
   { id: 'units',         label: 'وحدات القياس',      icon: <Ruler className="w-4 h-4" />,     group: 'operations' },
   { id: 'payments',      label: 'المدفوعات',         icon: <CreditCard className="w-4 h-4" />, group: 'operations' },
   { id: 'partners',      label: 'الشركاء',           icon: <Users className="w-4 h-4" />,      group: 'operations' },
+  { id: 'fixed-assets', label: 'الأصول الثابتة', icon: <Landmark className="w-4 h-4" />, group: 'operations' },
 
   // ⬇️ HR — جديد
   { id: 'hr-general',       label: 'الإعدادات العامة',       icon: <UserCog className="w-4 h-4" />, group: 'hr' },
@@ -66,6 +72,9 @@ const SECTIONS: SectionDef[] = [
   { id: 'hr-payroll',       label: 'الرواتب والتأمينات',     icon: <UserCog className="w-4 h-4" />, group: 'hr' },
   { id: 'hr-notifications', label: 'إشعارات الموارد البشرية', icon: <UserCog className="w-4 h-4" />, group: 'hr' },
   { id: 'hr-reports',       label: 'تقارير الموارد البشرية',  icon: <BarChart3 className="w-4 h-4" />, group: 'hr' },  // ⬅️ جديد
+  { id: 'custody',          label: 'العهد والسلف',           icon: <Wallet className="w-4 h-4" />,    group: 'hr' },
+  
+
     // النظام
   { id: 'notifications', label: 'الإشعارات',         icon: <Bell className="w-4 h-4" />,       group: 'system' },
   { id: 'printing',      label: 'الطباعة والـ PDF',   icon: <Printer className="w-4 h-4" />,    group: 'system' },
@@ -110,6 +119,9 @@ export const SettingsLayout: React.FC = () => {
      case 'hr-payroll':       return <HRPayrollSection />;
      case 'hr-notifications': return <HRNotificationsSection />;
      case 'hr-reports':       return <HRReportsSection />;
+
+     case 'fixed-assets': return <FixedAssetsSection />;
+     case 'custody':      return <CustodySettingsSection />;
 
       default:              return <CompanyProfileSection />;
     }
